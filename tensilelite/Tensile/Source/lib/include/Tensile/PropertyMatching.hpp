@@ -519,6 +519,7 @@ namespace Tensile
         {
             using Base       = MatchingTable<Object, Value, ReturnValue>;
             using Entry      = MatchingTableEntry<Key, Value>;
+            using KEntry     = KEntry<Value>;
             using Transform  = typename Base::Transform;
             using Properties = typename Base::Properties;
             using Common     = DistanceMatchingCommon<Key, Object, Value, ReturnValue, Distance>;

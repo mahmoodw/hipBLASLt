@@ -64,9 +64,14 @@ namespace Tensile
                         return e1.key < e2.key || (e1.key == e2.key && e1.speed > e2.speed);
                     };
                     std::sort(table.table.begin(), table.table.end(), comp);
+                    
+                    //Need to figure out why the lines below print the following yet still complain about constructor. HostLibraryTests are not interested in grid for now
+                    // Tensile::Matching::KEntry<std::shared_ptr<Tensile::SolutionLibrary<Tensile::ContractionProblemGemm, Tensile::ContractionSolution>>>
+                                            //   std::shared_ptr<Tensile::SolutionLibrary<Tensile::ContractionProblemGemm, Tensile::ContractionSolution>>
 
                     if constexpr(std::is_same<Distance, Matching::GridBasedDistance<Key>>{})
                     {
+                        std::cout<<"Mapping is grid based"<<std::endl;
                         if(Debug::Instance().gridBasedKDTree())
                         {
                             // Creating K map
@@ -76,12 +81,16 @@ namespace Tensile
                                 auto key = std::tuple(it->key[0], it->key[1]);
                                 if(table.kSolutionMap.find(key) == table.kSolutionMap.end())
                                 {
-                                    std::vector<KEntry> v   = {KEntry(k, it->value)};
-                                    table.kSolutionMap[key] = v;
+                                    std::cout<<"KEntry is of type: "<<typeid(KEntry).name()<<std::endl;
+                                    std::cout<<"it->value is of type: "<<typeid(it->value).name()<<std::endl;
+                                    // std::vector<KEntry> v   = {KEntry(k, it->value)};
+                                    // table.kSolutionMap[key] = v;
                                 }
                                 else
                                 {
-                                    table.kSolutionMap[key].push_back(KEntry(k, it->value));
+                                    std::cout<<"KEntry is of type: "<<typeid(KEntry).name()<<std::endl;
+                                    std::cout<<"it->value is of type: "<<typeid(it->value).name()<<std::endl;
+                                    // table.kSolutionMap[key].push_back(KEntry(k, it->value));
                                 }
                             }
 
