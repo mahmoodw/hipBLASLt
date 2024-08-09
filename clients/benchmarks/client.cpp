@@ -232,6 +232,59 @@ int hipblaslt_bench_datafile(const std::string& filter, bool any_stride)
     return ret;
 }
 
+void gpu_thread_init_device(int                id,
+                            const Arguments&   arg,
+                            const std::string& filter,
+                            bool               any_stride)
+{
+    CHECK_HIP_ERROR(hipSetDevice(id));
+
+    Arguments a(arg);
+    a.cold_iters = 1;
+    a.iters      = 0;
+    run_bench_test(a, filter, any_stride, false);
+}
+
+void gpu_thread_run_bench(int id, const Arguments& arg, const std::string& filter, bool any_stride)
+{
+    CHECK_HIP_ERROR(hipSetDevice(id));
+
+    Arguments a(arg);
+    run_bench_test(a, filter, any_stride, false);
+}
+
+int run_bench_gpu_test(int                parallel_devices,
+                       Arguments&         arg,
+                       const std::string& filter,
+                       bool               any_stride)
+{
+    int count;
+    CHECK_HIP_ERROR(hipGetDeviceCount(&count));
+
+    if(parallel_devices > count || parallel_devices < 1)
+        return 1;
+
+    // initialization
+    auto thread_init = std::make_unique<std::thread[]>(parallel_devices);
+
+    for(int id = 0; id < parallel_devices; ++id)
+        thread_init[id] = std::thread(::gpu_thread_init_device, id, arg, filter, any_stride);
+
+    for(int id = 0; id < parallel_devices; ++id)
+        thread_init[id].join();
+
+    // synchronzied launch of cold & hot calls
+    auto thread = std::make_unique<std::thread[]>(parallel_devices);
+
+    for(int id = 0; id < parallel_devices; ++id)
+        thread[id] = std::thread(::gpu_thread_run_bench, id, arg, filter, any_stride);
+
+    for(int id = 0; id < parallel_devices; ++id)
+        thread[id].join();
+
+    return 0;
+}
+
 // Replace --batch with --batch_count for backward compatibility
 void fix_batch(int argc, char* argv[])
 {
@@ -283,6 +336,7 @@ try
     std::string filter;
     std::string activation_type;
     int         device_id;
+    int         parallel_devices;
     int         flags             = 0;
     bool        datafile          = hipblaslt_parse_data(argc, argv);
     bool        log_function_name = false;
@@ -519,6 +573,10 @@ try
          value<int>(&device_id)->default_value(0),
          "Set default device to be used for subsequent program runs")
 
+        ("parallel_devices",
+         value<int>(&parallel_devices)->default_value(0),
+         "Set number of devices used for parallel runs (device 0 to parallel_devices-1)")
+
         ("c_equal_d",
          bool_switch(&arg.c_equal_d)->default_value(false),
          "C and D are stored in same memory")
@@ -738,7 +796,8 @@ try
     hipblaslt_cout << std::endl;
     if(device_count <= device_id)
         throw std::invalid_argument("Invalid Device ID");
-    set_device(device_id);
+    if(device_id >= 0)
+        set_device(device_id);
 
     FrequencyMonitor& freq_monitor = getFrequencyMonitor();
     freq_monitor.set_device_id(device_id);
@@ -864,7 +923,13 @@ try
     }
 
     arg.norm_check_assert = false;
-    int status            = run_bench_test(arg, filter, any_stride);
+    int status;
+
+    if(!parallel_devices)
+        status = run_bench_test(arg, filter, any_stride);
+    else
+        status = run_bench_gpu_test(parallel_devices, arg, filter, any_stride);
+
     freeFrequencyMonitor();
     return status;
 }

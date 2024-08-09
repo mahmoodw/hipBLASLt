@@ -165,6 +165,9 @@ public:
                   double                      atol      = ArgumentLogging::NA_value,
                   double                      rtol      = ArgumentLogging::NA_value)
     {
+        if(arg.iters < 1)
+            return; // warmup test only
+            
         hipblaslt_internal_ostream name_list;
         hipblaslt_internal_ostream value_list;
 
