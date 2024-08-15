@@ -151,6 +151,11 @@ namespace Tensile
     }
 
 
+    bool Debug::printStreamKGridInfo() const
+    {
+        return m_value & 0x80000;
+    }
+
     Debug::Debug()
         : m_value(DEBUG_SM)
         , m_value2(DEBUG_SM2)
