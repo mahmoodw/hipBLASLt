@@ -142,7 +142,7 @@ set(test_sources ${test_sources}
     ContractionSelectionLibrary_test.cpp
     # ContractionFitness_test.cpp
     # MultipleSolutionsPerSize_test.cpp
-    # DataTypes_test.cpp
+    DataTypes_test.cpp
     # EmbeddedData_test.cpp
     # KernelArguments_test.cpp
     Predicates_test.cpp
