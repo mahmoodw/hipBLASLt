@@ -161,9 +161,9 @@ TEST(ContractionProblem, Simple)
 {
     TensorOps noOps;
 
-    TensorDescriptor a(DataType::Float, {1534, 2147, 28});
-    TensorDescriptor b(DataType::Float, {2147, 3481, 28});
-    TensorDescriptor c(DataType::Float, {1534, 3481, 28});
+    TensorDescriptor a("a", DataType::Float, {1534, 2147, 28});
+    TensorDescriptor b("b", DataType::Float, {2147, 3481, 28});
+    TensorDescriptor c("c", DataType::Float, {1534, 3481, 28});
 
     ContractionProblem p(a, noOps, b, noOps, c, noOps, c, noOps, false);
 
@@ -197,9 +197,9 @@ TEST(ContractionProblem, TransposeA)
 {
     TensorOps noOps;
 
-    TensorDescriptor a(DataType::Float, {2147, 1534, 28});
-    TensorDescriptor b(DataType::Float, {2147, 3481, 28});
-    TensorDescriptor c(DataType::Float, {1534, 3481, 28});
+    TensorDescriptor a("a", DataType::Float, {2147, 1534, 28});
+    TensorDescriptor b("b", DataType::Float, {2147, 3481, 28});
+    TensorDescriptor c("c", DataType::Float, {1534, 3481, 28});
 
     a.transpose(0,1);
 
@@ -235,9 +235,9 @@ TEST(ContractionProblem, TransposeB)
 {
     TensorOps noOps;
 
-    TensorDescriptor a(DataType::Float, {1534, 2147, 28});
-    TensorDescriptor b(DataType::Float, {3481, 2147, 28});
-    TensorDescriptor c(DataType::Float, {1534, 3481, 28});
+    TensorDescriptor a("a", DataType::Float, {1534, 2147, 28});
+    TensorDescriptor b("b", DataType::Float, {3481, 2147, 28});
+    TensorDescriptor c("c", DataType::Float, {1534, 3481, 28});
 
     b.transpose(0,1);
 
@@ -273,9 +273,9 @@ TEST(ContractionProblem, TransposeAB)
 {
     TensorOps noOps;
 
-    TensorDescriptor a(DataType::Float, {2147, 1534, 28});
-    TensorDescriptor b(DataType::Float, {3481, 2147, 28});
-    TensorDescriptor c(DataType::Float, {1534, 3481, 28});
+    TensorDescriptor a("a", DataType::Float, {2147, 1534, 28});
+    TensorDescriptor b("b", DataType::Float, {3481, 2147, 28});
+    TensorDescriptor c("c", DataType::Float, {1534, 3481, 28});
 
     a.transpose(0,1);
     b.transpose(0,1);
@@ -312,10 +312,10 @@ TEST(ContractionProblem, Padding)
 {
     TensorOps noOps;
 
-    TensorDescriptor a(DataType::Float, {1534, 2147, 28}, {1536, 2147, 28});
-    TensorDescriptor b(DataType::Float, {2147, 3481, 28}, {2176, 3481, 28});
-    TensorDescriptor c(DataType::Float, {1534, 3481, 28}, {1536, 3481, 28});
-    TensorDescriptor d(DataType::Float, {1534, 3481, 28}, {1568, 3481, 28});
+    TensorDescriptor a("a", DataType::Float, {1534, 2147, 28}, {1536, 2147, 28});
+    TensorDescriptor b("b", DataType::Float, {2147, 3481, 28}, {2176, 3481, 28});
+    TensorDescriptor c("c", DataType::Float, {1534, 3481, 28}, {1536, 3481, 28});
+    TensorDescriptor d("d", DataType::Float, {1534, 3481, 28}, {1568, 3481, 28});
 
     ContractionProblem p(a, noOps, b, noOps, c, noOps, d, noOps, false);
 
@@ -349,11 +349,11 @@ TEST(ContractionProblem, Bad)
 {
     TensorOps noOps;
 
-    TensorDescriptor a(DataType::Float, {2147, 1534, 28});
-    TensorDescriptor b(DataType::Float, {3481, 2147, 28});
-    TensorDescriptor c(DataType::Float, {1534, 3481, 28});
+    TensorDescriptor a("a", DataType::Float, {2147, 1534, 28});
+    TensorDescriptor b("b", DataType::Float, {3481, 2147, 28});
+    TensorDescriptor c("c", DataType::Float, {1534, 3481, 28});
 
-    TensorDescriptor b_batch(DataType::Float, {3481, 2147, 12});
+    TensorDescriptor b_batch("b_batch", DataType::Float, {3481, 2147, 12});
 
     EXPECT_THROW(ContractionProblem(a, noOps, a, noOps, c, noOps, c, noOps, false), std::runtime_error);
     EXPECT_THROW(ContractionProblem(a, noOps, b, noOps, c, noOps, a, noOps, false), std::runtime_error);

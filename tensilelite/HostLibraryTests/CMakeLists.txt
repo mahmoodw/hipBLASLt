@@ -137,18 +137,18 @@ add_subdirectory(testlib)
 
 set(test_sources ${test_sources}
     test.cpp
-    # CachingLibrary_test.cpp
+    # CachingLibrary_test.cpp //in progress
     # ContractionProblem_test.cpp
     ContractionSelectionLibrary_test.cpp
     # ContractionFitness_test.cpp
     # MultipleSolutionsPerSize_test.cpp
     DataTypes_test.cpp
     # EmbeddedData_test.cpp
-    # KernelArguments_test.cpp
+    # KernelArguments_test.cpp //building but failing most diff
     Predicates_test.cpp
-    # ProjectedPerformance_test.cpp
+    # ProjectedPerformance_test.cpp //important
     # DecisionTree_test.cpp
-    # TensorDescriptor_test.cpp
+    # TensorDescriptor_test.cpp //important needs some changes
     # TestData_test.cpp
     # Utils_test.cpp
 )

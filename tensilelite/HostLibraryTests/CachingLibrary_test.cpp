@@ -94,10 +94,10 @@ TEST(Hashing, TensorDescriptor)
 {
     using namespace Tensile;
 
-    TensorDescriptor a(DataType::Float, {15, 8, 20});
-    TensorDescriptor b(DataType::Int32, {15, 8, 20});
-    TensorDescriptor c(DataType::Float, {15, 8, 20}, {1, 15, 15 * 8});
-    TensorDescriptor d(DataType::Float, {15, 8, 20}, {1, 17, 19 * 8});
+    TensorDescriptor a("a", DataType::Float, {15, 8, 20});
+    TensorDescriptor b("b", DataType::Int32, {15, 8, 20});
+    TensorDescriptor c("c", DataType::Float, {15, 8, 20}, {1, 15, 15 * 8});
+    TensorDescriptor d("d", DataType::Float, {15, 8, 20}, {1, 17, 19 * 8});
 
     EXPECT_NE(std::hash<TensorDescriptor>()(a), std::hash<TensorDescriptor>()(b));
     EXPECT_EQ(std::hash<TensorDescriptor>()(a), std::hash<TensorDescriptor>()(c));
@@ -105,135 +105,135 @@ TEST(Hashing, TensorDescriptor)
     EXPECT_NE(std::hash<TensorDescriptor>()(c), std::hash<TensorDescriptor>()(d));
 }
 
-TEST(Hashing, ContractionProblem)
+TEST(Hashing, ContractionProblemGemm)
 {
     using namespace Tensile;
 
     // Test sizes
-    ContractionProblem a = ContractionProblem::GEMM(false, true, 5, 7, 9, 5, 5, 5, 3.0, false, 5);
-    ContractionProblem b = ContractionProblem::GEMM(false, true, 5, 7, 9, 7, 5, 5, 3.0, false, 5);
-    ContractionProblem c = ContractionProblem::GEMM(false, true, 5, 7, 9, 0, 5, 5, 3.0, false, 5);
-    ContractionProblem d = ContractionProblem::GEMM(false, true, 5, 7, 9, 5, 5, 5, 3.0, false, 5);
+    ContractionProblemGemm a = ContractionProblemGemm::GEMM(false, true, 5, 7, 9, 5, 5, 5, 3.0, false, 5);
+    ContractionProblemGemm b = ContractionProblemGemm::GEMM(false, true, 5, 7, 9, 7, 5, 5, 3.0, false, 5);
+    ContractionProblemGemm c = ContractionProblemGemm::GEMM(false, true, 5, 7, 9, 0, 5, 5, 3.0, false, 5);
+    ContractionProblemGemm d = ContractionProblemGemm::GEMM(false, true, 5, 7, 9, 5, 5, 5, 3.0, false, 5);
 
-    EXPECT_NE(std::hash<ContractionProblem>()(a), std::hash<ContractionProblem>()(b));
-    EXPECT_NE(std::hash<ContractionProblem>()(a), std::hash<ContractionProblem>()(c));
+    EXPECT_NE(std::hash<ContractionProblemGemm>()(a), std::hash<ContractionProblemGemm>()(b));
+    EXPECT_NE(std::hash<ContractionProblemGemm>()(a), std::hash<ContractionProblemGemm>()(c));
 
-    EXPECT_EQ(std::hash<ContractionProblem>()(a), std::hash<ContractionProblem>()(d));
+    EXPECT_EQ(std::hash<ContractionProblemGemm>()(a), std::hash<ContractionProblemGemm>()(d));
 
     // Test high precision accumulate flag
-    ContractionProblem e = ContractionProblem::GEMM(false, true, 5, 7, 9, 5, 5, 5, 3.0, false, 5);
-    ContractionProblem f = e;
+    ContractionProblemGemm e = ContractionProblemGemm::GEMM(false, true, 5, 7, 9, 5, 5, 5, 3.0, false, 5);
+    ContractionProblemGemm f = e;
 
     e.setHighPrecisionAccumulate(false);
     f.setHighPrecisionAccumulate(true);
-    EXPECT_NE(std::hash<ContractionProblem>()(e), std::hash<ContractionProblem>()(f));
+    EXPECT_NE(std::hash<ContractionProblemGemm>()(e), std::hash<ContractionProblemGemm>()(f));
 
     e.setHighPrecisionAccumulate(true);
     f.setHighPrecisionAccumulate(true);
-    EXPECT_EQ(std::hash<ContractionProblem>()(e), std::hash<ContractionProblem>()(f));
+    EXPECT_EQ(std::hash<ContractionProblemGemm>()(e), std::hash<ContractionProblemGemm>()(f));
 
     e.setHighPrecisionAccumulate(false);
     f.setHighPrecisionAccumulate(false);
-    EXPECT_EQ(std::hash<ContractionProblem>()(e), std::hash<ContractionProblem>()(f));
+    EXPECT_EQ(std::hash<ContractionProblemGemm>()(e), std::hash<ContractionProblemGemm>()(f));
 
     // Test kernel language flag
-    ContractionProblem g = ContractionProblem::GEMM(false, true, 5, 7, 9, 5, 5, 5, 3.0, false, 5);
-    ContractionProblem h = g;
+    ContractionProblemGemm g = ContractionProblemGemm::GEMM(false, true, 5, 7, 9, 5, 5, 5, 3.0, false, 5);
+    ContractionProblemGemm h = g;
     g.setKernelLanguage(KernelLanguage::Any);
     h.setKernelLanguage(KernelLanguage::Source);
-    EXPECT_NE(std::hash<ContractionProblem>()(g), std::hash<ContractionProblem>()(h));
+    EXPECT_NE(std::hash<ContractionProblemGemm>()(g), std::hash<ContractionProblemGemm>()(h));
 
     g.setKernelLanguage(KernelLanguage::Any);
     h.setKernelLanguage(KernelLanguage::Assembly);
-    EXPECT_NE(std::hash<ContractionProblem>()(g), std::hash<ContractionProblem>()(h));
+    EXPECT_NE(std::hash<ContractionProblemGemm>()(g), std::hash<ContractionProblemGemm>()(h));
 
     g.setKernelLanguage(KernelLanguage::Source);
     h.setKernelLanguage(KernelLanguage::Assembly);
-    EXPECT_NE(std::hash<ContractionProblem>()(g), std::hash<ContractionProblem>()(h));
+    EXPECT_NE(std::hash<ContractionProblemGemm>()(g), std::hash<ContractionProblemGemm>()(h));
 
     g.setKernelLanguage(KernelLanguage::Any);
     h.setKernelLanguage(KernelLanguage::Any);
-    EXPECT_EQ(std::hash<ContractionProblem>()(g), std::hash<ContractionProblem>()(h));
+    EXPECT_EQ(std::hash<ContractionProblemGemm>()(g), std::hash<ContractionProblemGemm>()(h));
 
     g.setKernelLanguage(KernelLanguage::Source);
     h.setKernelLanguage(KernelLanguage::Source);
-    EXPECT_EQ(std::hash<ContractionProblem>()(g), std::hash<ContractionProblem>()(h));
+    EXPECT_EQ(std::hash<ContractionProblemGemm>()(g), std::hash<ContractionProblemGemm>()(h));
 
     g.setKernelLanguage(KernelLanguage::Assembly);
     h.setKernelLanguage(KernelLanguage::Assembly);
-    EXPECT_EQ(std::hash<ContractionProblem>()(g), std::hash<ContractionProblem>()(h));
+    EXPECT_EQ(std::hash<ContractionProblemGemm>()(g), std::hash<ContractionProblemGemm>()(h));
 
     // Test deterministic mode flag
-    ContractionProblem i = ContractionProblem::GEMM(false, true, 5, 7, 9, 5, 5, 5, 3.0, false, 5);
-    ContractionProblem j = i;
+    ContractionProblemGemm i = ContractionProblemGemm::GEMM(false, true, 5, 7, 9, 5, 5, 5, 3.0, false, 5);
+    ContractionProblemGemm j = i;
 
     i.setDeterministicMode(true);
     j.setDeterministicMode(false);
-    EXPECT_NE(std::hash<ContractionProblem>()(i), std::hash<ContractionProblem>()(j));
+    EXPECT_NE(std::hash<ContractionProblemGemm>()(i), std::hash<ContractionProblemGemm>()(j));
 
     i.setDeterministicMode(true);
     j.setDeterministicMode(true);
-    EXPECT_EQ(std::hash<ContractionProblem>()(i), std::hash<ContractionProblem>()(j));
+    EXPECT_EQ(std::hash<ContractionProblemGemm>()(i), std::hash<ContractionProblemGemm>()(j));
 
     i.setDeterministicMode(false);
     j.setDeterministicMode(false);
-    EXPECT_EQ(std::hash<ContractionProblem>()(i), std::hash<ContractionProblem>()(j));
+    EXPECT_EQ(std::hash<ContractionProblemGemm>()(i), std::hash<ContractionProblemGemm>()(j));
 
     // Test arithmetic unit flag
-    ContractionProblem k = ContractionProblem::GEMM(false, true, 5, 7, 9, 5, 5, 5, 3.0, false, 5);
-    ContractionProblem l = k;
+    ContractionProblemGemm k = ContractionProblemGemm::GEMM(false, true, 5, 7, 9, 5, 5, 5, 3.0, false, 5);
+    ContractionProblemGemm l = k;
 
-    k.setArithmeticUnit(ArithmeticUnit::Any);
-    l.setArithmeticUnit(ArithmeticUnit::MFMA);
-    EXPECT_NE(std::hash<ContractionProblem>()(k), std::hash<ContractionProblem>()(l));
+    // k.setArithmeticUnit(ArithmeticUnit::Any);
+    // l.setArithmeticUnit(ArithmeticUnit::MFMA);
+    EXPECT_NE(std::hash<ContractionProblemGemm>()(k), std::hash<ContractionProblemGemm>()(l));
 
-    k.setArithmeticUnit(ArithmeticUnit::Any);
-    l.setArithmeticUnit(ArithmeticUnit::VALU);
-    EXPECT_NE(std::hash<ContractionProblem>()(k), std::hash<ContractionProblem>()(l));
+    // k.setArithmeticUnit(ArithmeticUnit::Any);
+    // l.setArithmeticUnit(ArithmeticUnit::VALU);
+    EXPECT_NE(std::hash<ContractionProblemGemm>()(k), std::hash<ContractionProblemGemm>()(l));
 
-    k.setArithmeticUnit(ArithmeticUnit::VALU);
-    l.setArithmeticUnit(ArithmeticUnit::MFMA);
-    EXPECT_NE(std::hash<ContractionProblem>()(k), std::hash<ContractionProblem>()(l));
+    // k.setArithmeticUnit(ArithmeticUnit::VALU);
+    // l.setArithmeticUnit(ArithmeticUnit::MFMA);
+    EXPECT_NE(std::hash<ContractionProblemGemm>()(k), std::hash<ContractionProblemGemm>()(l));
 
-    k.setArithmeticUnit(ArithmeticUnit::Any);
-    l.setArithmeticUnit(ArithmeticUnit::Any);
-    EXPECT_EQ(std::hash<ContractionProblem>()(k), std::hash<ContractionProblem>()(l));
+    // k.setArithmeticUnit(ArithmeticUnit::Any);
+    // l.setArithmeticUnit(ArithmeticUnit::Any);
+    EXPECT_EQ(std::hash<ContractionProblemGemm>()(k), std::hash<ContractionProblemGemm>()(l));
 
-    k.setArithmeticUnit(ArithmeticUnit::VALU);
-    l.setArithmeticUnit(ArithmeticUnit::VALU);
-    EXPECT_EQ(std::hash<ContractionProblem>()(k), std::hash<ContractionProblem>()(l));
+    // k.setArithmeticUnit(ArithmeticUnit::VALU);
+    // l.setArithmeticUnit(ArithmeticUnit::VALU);
+    EXPECT_EQ(std::hash<ContractionProblemGemm>()(k), std::hash<ContractionProblemGemm>()(l));
 
-    k.setArithmeticUnit(ArithmeticUnit::MFMA);
-    l.setArithmeticUnit(ArithmeticUnit::MFMA);
-    EXPECT_EQ(std::hash<ContractionProblem>()(k), std::hash<ContractionProblem>()(l));
+    // k.setArithmeticUnit(ArithmeticUnit::MFMA);
+    // l.setArithmeticUnit(ArithmeticUnit::MFMA);
+    EXPECT_EQ(std::hash<ContractionProblemGemm>()(k), std::hash<ContractionProblemGemm>()(l));
 
     // Test performance metric flag
-    ContractionProblem m = ContractionProblem::GEMM(false, true, 5, 7, 9, 5, 5, 5, 3.0, false, 5);
-    ContractionProblem n = m;
+    ContractionProblemGemm m = ContractionProblemGemm::GEMM(false, true, 5, 7, 9, 5, 5, 5, 3.0, false, 5);
+    ContractionProblemGemm n = m;
 
     m.setPerformanceMetric(PerformanceMetric::DeviceEfficiency);
     n.setPerformanceMetric(PerformanceMetric::CUEfficiency);
-    EXPECT_NE(std::hash<ContractionProblem>()(m), std::hash<ContractionProblem>()(n));
+    EXPECT_NE(std::hash<ContractionProblemGemm>()(m), std::hash<ContractionProblemGemm>()(n));
 
     m.setPerformanceMetric(PerformanceMetric::Auto);
     n.setPerformanceMetric(PerformanceMetric::CUEfficiency);
-    EXPECT_NE(std::hash<ContractionProblem>()(m), std::hash<ContractionProblem>()(n));
+    EXPECT_NE(std::hash<ContractionProblemGemm>()(m), std::hash<ContractionProblemGemm>()(n));
 
     m.setPerformanceMetric(PerformanceMetric::Auto);
     n.setPerformanceMetric(PerformanceMetric::DeviceEfficiency);
-    EXPECT_NE(std::hash<ContractionProblem>()(m), std::hash<ContractionProblem>()(n));
+    EXPECT_NE(std::hash<ContractionProblemGemm>()(m), std::hash<ContractionProblemGemm>()(n));
 
     m.setPerformanceMetric(PerformanceMetric::Auto);
     n.setPerformanceMetric(PerformanceMetric::Auto);
-    EXPECT_EQ(std::hash<ContractionProblem>()(m), std::hash<ContractionProblem>()(n));
+    EXPECT_EQ(std::hash<ContractionProblemGemm>()(m), std::hash<ContractionProblemGemm>()(n));
 
     m.setPerformanceMetric(PerformanceMetric::DeviceEfficiency);
     n.setPerformanceMetric(PerformanceMetric::DeviceEfficiency);
-    EXPECT_EQ(std::hash<ContractionProblem>()(m), std::hash<ContractionProblem>()(n));
+    EXPECT_EQ(std::hash<ContractionProblemGemm>()(m), std::hash<ContractionProblemGemm>()(n));
 
     m.setPerformanceMetric(PerformanceMetric::CUEfficiency);
     n.setPerformanceMetric(PerformanceMetric::CUEfficiency);
-    EXPECT_EQ(std::hash<ContractionProblem>()(m), std::hash<ContractionProblem>()(n));
+    EXPECT_EQ(std::hash<ContractionProblemGemm>()(m), std::hash<ContractionProblemGemm>()(n));
 }
 
 TEST(Hashing, AMDGPU)
@@ -286,7 +286,7 @@ TEST(Hashing, Tuple2)
 {
     using namespace Tensile;
 
-    using TwoInts = std::tuple<ContractionProblem, AMDGPU>;
+    using TwoInts = std::tuple<ContractionProblemGemm, AMDGPU>;
 
     TwoInts tup;
 
@@ -319,19 +319,19 @@ TEST(CachingLibrary, Simple)
 
     AMDGPU gpu;
 
-    auto Problem0 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
-    auto Problem1 = ContractionProblem::GEMM(false, false, 6, 6, 6, 6, 6, 6, 1.2, false, 1);
-    auto Problem2 = ContractionProblem::GEMM(true, false, 14, 4, 4, 4, 4, 4, 1.2, false, 1);
-    auto Problem3 = ContractionProblem::GEMM(true, true, 24, 4, 4, 4, 4, 4, 1.2, false, 1);
+    auto Problem0 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+    auto Problem1 = ContractionProblemGemm::GEMM(false, false, 6, 6, 6, 6, 6, 6, 1.2, false, 1);
+    auto Problem2 = ContractionProblemGemm::GEMM(true, false, 14, 4, 4, 4, 4, 4, 1.2, false, 1);
+    auto Problem3 = ContractionProblemGemm::GEMM(true, true, 24, 4, 4, 4, 4, 4, 1.2, false, 1);
 
     using Key = std::array<int64_t, 4>;
     using Table
         = Matching::DistanceMatchingTable<Key,
-                                          ContractionProblem,
-                                          std::shared_ptr<SolutionLibrary<ContractionProblem>>,
+                                          ContractionProblemGemm,
+                                          std::shared_ptr<SolutionLibrary<ContractionProblemGemm>>,
                                           std::shared_ptr<ContractionSolution>,
                                           Matching::EuclideanDistance<Key>>;
-    using Properties = std::vector<std::shared_ptr<Property<ContractionProblem>>>;
+    using Properties = std::vector<std::shared_ptr<Property<ContractionProblemGemm>>>;
 
     Properties properties;
 
@@ -353,7 +353,7 @@ TEST(CachingLibrary, Simple)
     std::shared_ptr<Table> matchingTable = std::make_shared<Table>(properties);
 
     using Entry
-        = Matching::MatchingTableEntry<Key, std::shared_ptr<SolutionLibrary<ContractionProblem>>>;
+        = Matching::MatchingTableEntry<Key, std::shared_ptr<SolutionLibrary<ContractionProblemGemm>>>;
 
     std::vector<Entry> table;
 
@@ -370,11 +370,11 @@ TEST(CachingLibrary, Simple)
 
     matchingTable->table = table;
 
-    auto subLib = std::make_shared<ProblemMatchingLibrary<ContractionProblem>>();
+    auto subLib = std::make_shared<ProblemMatchingLibrary<ContractionProblemGemm>>();
 
     subLib->table = matchingTable;
 
-    CachingLibrary<ContractionProblem> lib(subLib);
+    CachingLibrary<ContractionProblemGemm> lib(subLib);
 
     EXPECT_EQ(nullptr, lib.findSolutionInCache(Problem0, gpu));
     auto theSolution0 = lib.findBestSolution(Problem0, gpu);
@@ -411,14 +411,14 @@ TEST(CachingLibrary, FlagsDiff)
     using Key = std::array<int64_t, 4>;
     using Table
         = Matching::DistanceMatchingTable<Key,
-                                          ContractionProblem,
-                                          std::shared_ptr<SolutionLibrary<ContractionProblem>>,
+                                          ContractionProblemGemm,
+                                          std::shared_ptr<SolutionLibrary<ContractionProblemGemm>>,
                                           std::shared_ptr<ContractionSolution>,
                                           Matching::EuclideanDistance<Key>>;
-    using Properties = std::vector<std::shared_ptr<Property<ContractionProblem>>>;
+    using Properties = std::vector<std::shared_ptr<Property<ContractionProblemGemm>>>;
 
     using Entry
-        = Matching::MatchingTableEntry<Key, std::shared_ptr<SolutionLibrary<ContractionProblem>>>;
+        = Matching::MatchingTableEntry<Key, std::shared_ptr<SolutionLibrary<ContractionProblemGemm>>>;
 
     // Default GPU device
     AMDGPU gpu;
@@ -460,8 +460,8 @@ TEST(CachingLibrary, FlagsDiff)
         auto Library0 = std::make_shared<SingleContractionLibrary>(Solution0);
         auto Library1 = std::make_shared<SingleContractionLibrary>(Solution1);
 
-        auto Problem0 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
-        auto Problem1 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem0 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem1 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
 
         Problem0.setHighPrecisionAccumulate(true);
         Problem1.setHighPrecisionAccumulate(false);
@@ -478,11 +478,11 @@ TEST(CachingLibrary, FlagsDiff)
 
         matchingTable->table = table;
 
-        auto subLib = std::make_shared<ProblemMatchingLibrary<ContractionProblem>>();
+        auto subLib = std::make_shared<ProblemMatchingLibrary<ContractionProblemGemm>>();
 
         subLib->table = matchingTable;
 
-        CachingLibrary<ContractionProblem> lib(subLib);
+        CachingLibrary<ContractionProblemGemm> lib(subLib);
 
         EXPECT_EQ(nullptr, lib.findSolutionInCache(Problem0, gpu));
         auto theSolution0 = lib.findBestSolution(Problem0, gpu);
@@ -525,9 +525,9 @@ TEST(CachingLibrary, FlagsDiff)
         auto Library1 = std::make_shared<SingleContractionLibrary>(Solution1);
         auto Library2 = std::make_shared<SingleContractionLibrary>(Solution2);
 
-        auto Problem0 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
-        auto Problem1 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
-        auto Problem2 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem0 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem1 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem2 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
 
         Problem0.setKernelLanguage(KernelLanguage::Assembly);
         Problem1.setKernelLanguage(KernelLanguage::Source);
@@ -547,11 +547,11 @@ TEST(CachingLibrary, FlagsDiff)
 
         matchingTable->table = table;
 
-        auto subLib = std::make_shared<ProblemMatchingLibrary<ContractionProblem>>();
+        auto subLib = std::make_shared<ProblemMatchingLibrary<ContractionProblemGemm>>();
 
         subLib->table = matchingTable;
 
-        CachingLibrary<ContractionProblem> lib(subLib);
+        CachingLibrary<ContractionProblemGemm> lib(subLib);
 
         EXPECT_EQ(nullptr, lib.findSolutionInCache(Problem0, gpu));
         auto theSolution0 = lib.findBestSolution(Problem0, gpu);
@@ -591,8 +591,8 @@ TEST(CachingLibrary, FlagsDiff)
         auto Library0 = std::make_shared<SingleContractionLibrary>(Solution0);
         auto Library1 = std::make_shared<SingleContractionLibrary>(Solution1);
 
-        auto Problem0 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
-        auto Problem1 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem0 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem1 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
 
         Problem0.setDeterministicMode(true);
         Problem1.setDeterministicMode(false);
@@ -609,11 +609,11 @@ TEST(CachingLibrary, FlagsDiff)
 
         matchingTable->table = table;
 
-        auto subLib = std::make_shared<ProblemMatchingLibrary<ContractionProblem>>();
+        auto subLib = std::make_shared<ProblemMatchingLibrary<ContractionProblemGemm>>();
 
         subLib->table = matchingTable;
 
-        CachingLibrary<ContractionProblem> lib(subLib);
+        CachingLibrary<ContractionProblemGemm> lib(subLib);
 
         EXPECT_EQ(nullptr, lib.findSolutionInCache(Problem0, gpu));
         auto theSolution0 = lib.findBestSolution(Problem0, gpu);
@@ -656,9 +656,9 @@ TEST(CachingLibrary, FlagsDiff)
         auto Library1 = std::make_shared<SingleContractionLibrary>(Solution1);
         auto Library2 = std::make_shared<SingleContractionLibrary>(Solution2);
 
-        auto Problem0 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
-        auto Problem1 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
-        auto Problem2 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem0 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem1 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem2 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
 
         Problem0.setArithmeticUnit(ArithmeticUnit::MFMA);
         Problem1.setArithmeticUnit(ArithmeticUnit::VALU);
@@ -678,11 +678,11 @@ TEST(CachingLibrary, FlagsDiff)
 
         matchingTable->table = table;
 
-        auto subLib = std::make_shared<ProblemMatchingLibrary<ContractionProblem>>();
+        auto subLib = std::make_shared<ProblemMatchingLibrary<ContractionProblemGemm>>();
 
         subLib->table = matchingTable;
 
-        CachingLibrary<ContractionProblem> lib(subLib);
+        CachingLibrary<ContractionProblemGemm> lib(subLib);
 
         EXPECT_EQ(nullptr, lib.findSolutionInCache(Problem0, gpu));
         auto theSolution0 = lib.findBestSolution(Problem0, gpu);
@@ -705,9 +705,9 @@ TEST(CachingLibrary, FlagsDiff)
 
     // Random combinations, realistic
     {
-        using And = Predicates::And<ContractionProblem>;
+        using And = Predicates::And<ContractionProblemGemm>;
         using PredicateList
-            = std::vector<std::shared_ptr<Predicates::Predicate<ContractionProblem>>>;
+            = std::vector<std::shared_ptr<Predicates::Predicate<ContractionProblemGemm>>>;
 
         auto pred_HPA_true
             = std::make_shared<Predicates::Contraction::HighPrecisionAccumulateEqual>(true);
@@ -780,46 +780,46 @@ TEST(CachingLibrary, FlagsDiff)
         auto Library6 = std::make_shared<SingleContractionLibrary>(Solution6);
         auto Library7 = std::make_shared<SingleContractionLibrary>(Solution7);
 
-        auto Problem0 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
-        auto Problem1 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
-        auto Problem2 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
-        auto Problem3 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
-        auto Problem4 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
-        auto Problem5 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
-        auto Problem6 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
-        auto Problem7 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem0 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem1 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem2 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem3 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem4 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem5 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem6 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+        auto Problem7 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
 
         Problem0.setHighPrecisionAccumulate(true);
         Problem0.setKernelLanguage(KernelLanguage::Assembly);
-        Problem0.setArithmeticUnit(ArithmeticUnit::VALU);
+        // Problem0.setArithmeticUnit(ArithmeticUnit::VALU);
 
         Problem1.setHighPrecisionAccumulate(true);
         Problem1.setKernelLanguage(KernelLanguage::Assembly);
-        Problem1.setArithmeticUnit(ArithmeticUnit::MFMA);
+        // Problem1.setArithmeticUnit(ArithmeticUnit::MFMA);
 
         Problem2.setHighPrecisionAccumulate(true);
         Problem2.setKernelLanguage(KernelLanguage::Source);
-        Problem2.setArithmeticUnit(ArithmeticUnit::VALU);
+        // Problem2.setArithmeticUnit(ArithmeticUnit::VALU);
         Problem2.setDeterministicMode(true);
 
         Problem3.setHighPrecisionAccumulate(true);
         Problem3.setKernelLanguage(KernelLanguage::Source);
-        Problem3.setArithmeticUnit(ArithmeticUnit::MFMA);
+        // Problem3.setArithmeticUnit(ArithmeticUnit::MFMA);
         Problem3.setDeterministicMode(true);
 
         Problem4.setHighPrecisionAccumulate(true);
         Problem4.setKernelLanguage(KernelLanguage::Source);
-        Problem4.setArithmeticUnit(ArithmeticUnit::VALU);
+        // Problem4.setArithmeticUnit(ArithmeticUnit::VALU);
 
         Problem5.setHighPrecisionAccumulate(true);
         Problem5.setKernelLanguage(KernelLanguage::Source);
-        Problem5.setArithmeticUnit(ArithmeticUnit::MFMA);
+        // Problem5.setArithmeticUnit(ArithmeticUnit::MFMA);
 
         Problem6.setHighPrecisionAccumulate(true);
-        Problem6.setArithmeticUnit(ArithmeticUnit::VALU);
+        // Problem6.setArithmeticUnit(ArithmeticUnit::VALU);
 
         Problem7.setHighPrecisionAccumulate(false);
-        Problem7.setArithmeticUnit(ArithmeticUnit::VALU);
+        // Problem7.setArithmeticUnit(ArithmeticUnit::VALU);
 
         std::shared_ptr<Table> matchingTable = std::make_shared<Table>(properties);
 
@@ -845,11 +845,11 @@ TEST(CachingLibrary, FlagsDiff)
 
         matchingTable->table = table;
 
-        auto subLib = std::make_shared<ProblemMatchingLibrary<ContractionProblem>>();
+        auto subLib = std::make_shared<ProblemMatchingLibrary<ContractionProblemGemm>>();
 
         subLib->table = matchingTable;
 
-        CachingLibrary<ContractionProblem> lib(subLib);
+        CachingLibrary<ContractionProblemGemm> lib(subLib);
 
         EXPECT_EQ(nullptr, lib.findSolutionInCache(Problem0, gpu));
         auto theSolution0 = lib.findBestSolution(Problem0, gpu);
@@ -918,19 +918,19 @@ TEST(CachingLibrary, Insert)
 
     AMDGPU gpu;
 
-    auto Problem0 = ContractionProblem::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
-    auto Problem1 = ContractionProblem::GEMM(false, false, 5, 5, 5, 5, 5, 5, 1.2, false, 1);
-    auto Problem2 = ContractionProblem::GEMM(true, false, 6, 6, 6, 6, 6, 6, 1.2, false, 1);
-    auto Problem3 = ContractionProblem::GEMM(true, true, 7, 7, 7, 7, 7, 7, 1.2, false, 1);
+    auto Problem0 = ContractionProblemGemm::GEMM(false, false, 4, 4, 4, 4, 4, 4, 1.2, false, 1);
+    auto Problem1 = ContractionProblemGemm::GEMM(false, false, 5, 5, 5, 5, 5, 5, 1.2, false, 1);
+    auto Problem2 = ContractionProblemGemm::GEMM(true, false, 6, 6, 6, 6, 6, 6, 1.2, false, 1);
+    auto Problem3 = ContractionProblemGemm::GEMM(true, true, 7, 7, 7, 7, 7, 7, 1.2, false, 1);
 
     using Key = std::array<int64_t, 4>;
     using Table
         = Matching::DistanceMatchingTable<Key,
-                                          ContractionProblem,
-                                          std::shared_ptr<SolutionLibrary<ContractionProblem>>,
+                                          ContractionProblemGemm,
+                                          std::shared_ptr<SolutionLibrary<ContractionProblemGemm>>,
                                           std::shared_ptr<ContractionSolution>,
                                           Matching::EuclideanDistance<Key>>;
-    using Properties = std::vector<std::shared_ptr<Property<ContractionProblem>>>;
+    using Properties = std::vector<std::shared_ptr<Property<ContractionProblemGemm>>>;
 
     Properties properties;
 
@@ -952,7 +952,7 @@ TEST(CachingLibrary, Insert)
     std::shared_ptr<Table> matchingTable = std::make_shared<Table>(properties);
 
     using Entry
-        = Matching::MatchingTableEntry<Key, std::shared_ptr<SolutionLibrary<ContractionProblem>>>;
+        = Matching::MatchingTableEntry<Key, std::shared_ptr<SolutionLibrary<ContractionProblemGemm>>>;
 
     std::vector<Entry> table;
 
@@ -965,11 +965,11 @@ TEST(CachingLibrary, Insert)
 
     matchingTable->table = table;
 
-    auto subLib = std::make_shared<ProblemMatchingLibrary<ContractionProblem>>();
+    auto subLib = std::make_shared<ProblemMatchingLibrary<ContractionProblemGemm>>();
 
     subLib->table = matchingTable;
 
-    CachingLibrary<ContractionProblem> lib(subLib);
+    CachingLibrary<ContractionProblemGemm> lib(subLib);
 
     // Add before solution cached
     EXPECT_TRUE(lib.addToOverride(Problem1, gpu, SolutionOverride));
@@ -1010,7 +1010,7 @@ TEST(CachingLibrary, Parsing)
                                       "f32_r",
                                       "752"};
 
-    auto probSol = problemFromEntries<ContractionProblem>(entries0);
+    auto probSol = problemFromEntries<ContractionProblemGemm>(entries0);
     EXPECT_TRUE(probSol.first.transA());
     EXPECT_FALSE(probSol.first.transB());
 
@@ -1047,7 +1047,7 @@ TEST(CachingLibrary, Parsing)
                                       "f32_r",
                                       "3976"};
 
-    probSol = problemFromEntries<ContractionProblem>(entries1);
+    probSol = problemFromEntries<ContractionProblemGemm>(entries1);
     EXPECT_FALSE(probSol.first.transA());
     EXPECT_TRUE(probSol.first.transB());
 
@@ -1066,7 +1066,7 @@ TEST(CachingLibrary, Parsing)
 
     // Bad args
     std::vector<std::string> entries2{"N", "T", "104"}; // Too short
-    probSol = problemFromEntries<ContractionProblem>(entries2);
+    probSol = problemFromEntries<ContractionProblemGemm>(entries2);
     EXPECT_EQ(probSol.second, -1);
 
     std::vector<std::string> entries3{"T",
@@ -1084,7 +1084,7 @@ TEST(CachingLibrary, Parsing)
                                       "f16_r",
                                       "f32_r",
                                       "752"};
-    probSol = problemFromEntries<ContractionProblem>(entries3);
+    probSol = problemFromEntries<ContractionProblemGemm>(entries3);
     EXPECT_EQ(probSol.second, -1);
 
     std::vector<std::string> entries4{"T",
@@ -1102,6 +1102,6 @@ TEST(CachingLibrary, Parsing)
                                       "f16_r",
                                       "f32_r",
                                       "752"};
-    probSol = problemFromEntries<ContractionProblem>(entries4);
+    probSol = problemFromEntries<ContractionProblemGemm>(entries4);
     EXPECT_EQ(probSol.second, -1);
 }
