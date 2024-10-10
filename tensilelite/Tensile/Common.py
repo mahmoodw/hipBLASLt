@@ -259,7 +259,7 @@ globalParameters["PerfModelL2ReadBwMul"] = 2
 globalParameters["PerfModelReadEfficiency"] = 0.85
 
 # limitation for training
-globalParameters["MaxWorkspaceSize"] = 128 * 1024 * 1024 # max workspace for training (128M)
+globalParameters["MaxWorkspaceSize"] = 128 * 1024 * 1024 # max workspace for training (128MB)
 globalParameters["MinKForGSU"] = 32 # min K size to use GlobalSplitU algorithm (only for HPA now)
 
 # control if a solution is run for a given problem
@@ -284,6 +284,7 @@ globalParameters["RotatingMode"] = 0 # Default is 0, allocated in order A0B0C0D0
 
 globalParameters["BuildIdKind"] = "sha1"
 globalParameters["ValidateLibrary"] = False
+globalParameters["AsmDebug"] = False # Set to True to keep debug information for compiled code objects
 
 # Save a copy - since pytest doesn't re-run this initialization code and YAML files can override global settings - odd things can happen
 defaultGlobalParameters = deepcopy(globalParameters)
@@ -616,6 +617,8 @@ validParameters = {
 
     # Attempt to load directly from global memory into Vgpr.
     # Assembly only
+    "DirectToVgprA":              [ False, True ],
+    "DirectToVgprB":              [ False ], #[ False, True ], # TODO: enable DTVB
     "DirectToVgprSparseMetadata": [ False, True ],
 
     # Attempt to load directly from global memory into LDS.
@@ -825,7 +828,7 @@ validParameters = {
     # Formula for wgSerial:
     # wgSerial = wg0 + (wg1 % WorkGroupMapping) * nwg0
     "WorkGroupMapping":           list(range(-1024, 1024+1)),  # change a workgroup's id so that the all the workgroups on the gpu at a time are hitting L2 cache the best
-    "WorkGroupMappingXCC":        list(range(1, 64)),  # change a workgroup's id so that contiguous workgroup can map on same XCC
+    "WorkGroupMappingXCC":        [1,2,4,8,16,32],  # change a workgroup's id so that contiguous workgroup can map on same XCC
     # -1 : WorkGroupMappingXCCGroup will be set to CU_count at runtime. Please ensure that (CU_count % WGMXCC == 0).
     "WorkGroupMappingXCCGroup":   list(range(-1, 1024)),  # change a workgroup's id so that contiguous workgroup can map on same XCC, remap workgroup in a group of WGMXCCG.
 
@@ -1179,6 +1182,8 @@ defaultBenchmarkCommonParameters = [
 
     {"BufferLoad":                [ True ] },
     {"BufferStore":               [ True ] },
+    {"DirectToVgprA":             [ False ] },
+    {"DirectToVgprB":             [ False ] },
     {"DirectToVgprSparseMetadata":[ False ] },
     {"DirectToLds":               [ False ] },
     {"UseSgprForGRO":             [ -1 ] },

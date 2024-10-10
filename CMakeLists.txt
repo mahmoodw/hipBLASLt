@@ -55,6 +55,25 @@ else( )
     set (HIP_PATH $ENV{HIP_PATH} )
 endif( )
 
+if (DEFINED ENV{ROCM_PATH})
+  set(rocm_bin "$ENV{ROCM_PATH}/bin")
+else()
+  set(rocm_bin "/opt/rocm/bin")
+endif()
+
+if (NOT DEFINED ENV{CXX} AND NOT CMAKE_CXX_COMPILER)
+  set(CMAKE_CXX_COMPILER "${rocm_bin}/amdclang++")
+endif()
+
+if (NOT DEFINED ENV{CC} AND NOT CMAKE_C_COMPILER)
+  set(CMAKE_C_COMPILER "${rocm_bin}/amdclang")
+endif()
+
+# TODO: move FC and CXX and CC compiler vars above to new toolchain-linux.cmake (Fortran for clients)
+if (NOT DEFINED ENV{FC} AND NOT CMAKE_Fortran_COMPILER)
+  set(CMAKE_Fortran_COMPILER "gfortran")
+endif()
+
 # hipBLASLt project
 project(hipblaslt LANGUAGES CXX)
 
@@ -139,11 +158,17 @@ if (USE_CUDA)
     list( APPEND HIP_INCLUDE_DIRS "${HIP_ROOT_DIR}/include" )
 else()
 
-
-    #Set the AMDGPU_TARGETS with backward compatiblity
-    rocm_check_target_ids(DEFAULT_AMDGPU_TARGETS
-        TARGETS "gfx908:xnack+;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx940;gfx941;gfx942;gfx1100;gfx1101;;gfx1200;gfx1201"
-    )
+    if (NOT BUILD_ADDRESS_SANITIZER)
+      #Set the AMDGPU_TARGETS with backward compatiblity
+      rocm_check_target_ids(DEFAULT_AMDGPU_TARGETS
+          TARGETS "gfx908:xnack+;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx940;gfx941;gfx942;gfx1100;gfx1101;;gfx1200;gfx1201"
+      )
+    else()
+      #build xnack-supported targets only
+      rocm_check_target_ids(DEFAULT_AMDGPU_TARGETS
+          TARGETS "gfx908:xnack+;gfx90a:xnack+;gfx940:xnack+;gfx941:xnack+;gfx942:xnack+"
+      )
+    endif()
 
     if (AMDGPU_TARGETS)
         set(TMPAMDGPU_TARGETS "${AMDGPU_TARGETS}")
@@ -325,7 +350,8 @@ if( NOT BUILD_CUDA )
     rocm_package_add_dependencies(DEPENDS "hipblas >= 0.50.0")
   else()
     set(hipblas_common_minimum 1.0.0)
-    rocm_package_add_dependencies(DEPENDS "hipblas-common >= ${hipblas_common_minimum}")
+    rocm_package_add_deb_dependencies(COMPONENT devel DEPENDS "hipblas-common-dev >= ${hipblas_common_minimum}") 
+    rocm_package_add_rpm_dependencies(COMPONENT devel DEPENDS "hipblas-common-devel >= ${hipblas_common_minimum}")
   endif()
 endif( )
 

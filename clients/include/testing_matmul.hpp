@@ -97,11 +97,11 @@ Tout cast_from_type(void* in, hipDataType type, size_t index)
 #ifdef ROCM_USE_FLOAT8
     case HIP_R_8F_E4M3:
         if constexpr(std::is_same<Tout, float>::value)
-            return static_cast<Tout>((static_cast<hipblaslt_f8_ocp*>(in))[index]);
+            return static_cast<Tout>((static_cast<hipblaslt_f8*>(in))[index]);
         return 0;
     case HIP_R_8F_E5M2:
         if constexpr(std::is_same<Tout, float>::value)
-            return static_cast<Tout>((static_cast<hipblaslt_bf8_ocp*>(in))[index]);
+            return static_cast<Tout>((static_cast<hipblaslt_bf8*>(in))[index]);
         return 0;
 #endif
     case HIP_R_32I:
@@ -139,10 +139,10 @@ void saturate_cast_to_type(void* dst, Tin src, hipDataType typeD, size_t indexD)
         return;
 #ifdef ROCM_USE_FLOAT8
     case HIP_R_8F_E4M3:
-        static_cast<hipblaslt_f8_ocp*>(dst)[indexD] = saturate_cast<hipblaslt_f8_ocp>(src);
+        static_cast<hipblaslt_f8*>(dst)[indexD] = saturate_cast<hipblaslt_f8>(src);
         return;
     case HIP_R_8F_E5M2:
-        static_cast<hipblaslt_bf8_ocp*>(dst)[indexD] = saturate_cast<hipblaslt_bf8_ocp>(src);
+        static_cast<hipblaslt_bf8*>(dst)[indexD] = saturate_cast<hipblaslt_bf8>(src);
         return;
 #endif
     case HIP_R_32I:
@@ -966,7 +966,7 @@ void testing_matmul_with_bias(const Arguments& arg,
 {
     double gpu_time_used, cpu_time_used, gpu_mem_gbytes;
     gpu_time_used = cpu_time_used = gpu_mem_gbytes = 0.0;
-    bool                   HMM    = arg.HMM;
+    bool                   HMM                     = arg.HMM;
     hipblaslt_local_handle handle{arg};
     hipStream_t            stream;
     CHECK_HIP_ERROR(hipStreamCreate(&stream));
@@ -1522,7 +1522,7 @@ void testing_matmul_with_bias(const Arguments& arg,
                 CHECK_HIP_ERROR(synchronize(hScaleA[i], dScaleA[i]));
             }
             else
-                CHECK_HIP_ERROR(synchronize(dScaleA[i], hScaleA[i]));
+                CHECK_HIP_ERROR(synchronize(dScaleA[i], hScaleA[i], block_count));
         }
 
         if(arg.scaleB)
@@ -1539,7 +1539,7 @@ void testing_matmul_with_bias(const Arguments& arg,
                 CHECK_HIP_ERROR(synchronize(hScaleB[i], dScaleB[i]));
             }
             else
-                CHECK_HIP_ERROR(synchronize(dScaleB[i], hScaleB[i]));
+                CHECK_HIP_ERROR(synchronize(dScaleB[i], hScaleB[i], block_count));
         }
 
         if(arg.scaleC)
@@ -1733,7 +1733,7 @@ void testing_matmul_with_bias(const Arguments& arg,
     }
 
     // set preference
-    size_t                     max_workspace_size = 32 * 1024 * 1024;
+    size_t                     max_workspace_size = 128 * 1024 * 1024;
     hipblaslt_local_preference pref;
     EXPECT_HIPBLAS_STATUS(
         hipblasLtMatmulPreferenceSetAttribute(pref,

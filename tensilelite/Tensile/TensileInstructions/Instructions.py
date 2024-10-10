@@ -1335,6 +1335,12 @@ class SCmpGtU32(CommonInstruction):
         super().__init__(InstType.INST_U32, None, [src0, src1], None, None, comment)
         self.setInst("s_cmp_gt_u32")
 
+# S bitcmp
+class SBitcmp1B32(CommonInstruction):
+    def __init__(self, src0, src1, comment="") -> None:
+        super().__init__(InstType.INST_B32, None, [src0, src1], None, None, comment)
+        self.setInst("s_bitcmp1_b32")
+
 # S Cmp K
 # SCC = (S0.u == SIMM16)
 class _SCmpKEQU32(CommonInstruction):
@@ -1541,6 +1547,18 @@ class SCMovB64(CommonInstruction):
     def __init__(self, dst, src, comment="") -> None:
         super().__init__(InstType.INST_B64, dst, [src], None, None, comment)
         self.setInst("s_cmov_b64")
+
+# Find first bit
+class SFf1B32(CommonInstruction):
+    def __init__(self, dst, src, comment="") -> None:
+        super().__init__(InstType.INST_B32, dst, [src], None, None, comment)
+        self.setInst("s_ff1_i32_b32")
+
+# Bit field mask
+class SBfmB32(CommonInstruction):
+    def __init__(self, dst, src0, src1, comment="") -> None:
+        super().__init__(InstType.INST_B32, dst, [src0, src1], None, None, comment)
+        self.setInst("s_bfm_b32")
 
 # Sign ext
 class SMovkI32(CommonInstruction):

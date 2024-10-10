@@ -1984,7 +1984,17 @@ namespace Tensile
 
                 virtual bool operator()(ContractionProblemGemm const& problem) const override
                 {
-                    return problem.activationType() == value || value == ActivationType::All;
+		    if (value == ActivationType::All)
+			return true;
+		    if (problem.activationType() == value || problem.activationType() == ActivationType::None)
+			return true;
+		    if (value == ActivationType::Hipblaslt_all
+		        && (problem.activationType() == ActivationType::DGelu
+			    || problem.activationType() == ActivationType::Gelu
+			    || problem.activationType() == ActivationType::Relu))
+			return true;
+
+		    return false;
                 }
 
                 virtual bool debugEval(ContractionProblemGemm const& problem,
@@ -2014,7 +2024,8 @@ namespace Tensile
 
                 virtual bool operator()(ContractionProblemGemm const& problem) const override
                 {
-                    if(problem.activationType() == ActivationType::All)
+                    if(problem.activationType() == ActivationType::All
+                       || problem.activationType() == ActivationType::Hipblaslt_all)
                     {
                         for(size_t i = 0; i < value.size(); i++)
                         {
@@ -2592,7 +2603,7 @@ namespace Tensile
                 virtual bool operator()(ContractionProblemGemm const& problem) const override
                 {
                     size_t WGMXCCG = (value[1] == -1) ? cuCount : value[1];
-                    return WGMXCCG % value[0] == 0;
+                    return ((value[0] & (value[0] - 1)) == 0) && WGMXCCG % value[0] == 0;
                 }
 
                 virtual bool debugEval(ContractionProblemGemm const& problem,

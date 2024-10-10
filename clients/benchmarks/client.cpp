@@ -104,10 +104,10 @@ struct perf_matmul<
         || (std::is_same<TiA, hipblaslt_bf8_fnuz>{} && std::is_same<TiB, hipblaslt_f8_fnuz>{})
         || (std::is_same<TiA, hipblaslt_bf8_fnuz>{} && std::is_same<TiB, hipblaslt_bf8_fnuz>{})
 #ifdef ROCM_USE_FLOAT8
-        || (std::is_same<TiA, hipblaslt_f8_ocp>{} && std::is_same<TiB, hipblaslt_f8_ocp>{})
-        || (std::is_same<TiA, hipblaslt_f8_ocp>{} && std::is_same<TiB, hipblaslt_bf8_ocp>{})
-        || (std::is_same<TiA, hipblaslt_bf8_ocp>{} && std::is_same<TiB, hipblaslt_f8_ocp>{})
-        || (std::is_same<TiA, hipblaslt_bf8_ocp>{} && std::is_same<TiB, hipblaslt_bf8_ocp>{})
+        || (std::is_same<TiA, hipblaslt_f8>{} && std::is_same<TiB, hipblaslt_f8>{})
+        || (std::is_same<TiA, hipblaslt_f8>{} && std::is_same<TiB, hipblaslt_bf8>{})
+        || (std::is_same<TiA, hipblaslt_bf8>{} && std::is_same<TiB, hipblaslt_f8>{})
+        || (std::is_same<TiA, hipblaslt_bf8>{} && std::is_same<TiB, hipblaslt_bf8>{})
 #endif
         || (std::is_same<TiA, double>{} && std::is_same<TiB, double>{})
         || (std::is_same<TiA, hipblasLtInt8>{} && std::is_same<TiB, hipblasLtInt8>{})
@@ -419,11 +419,11 @@ try
 
         ("transA",
          value<char>(&arg.transA)->default_value('N'),
-         "N = no transpose, T = transpose, C = conjugate transpose")
+         "N = no transpose, T = transpose")
 
         ("transB",
          value<char>(&arg.transB)->default_value('N'),
-         "N = no transpose, T = transpose, C = conjugate transpose")
+         "N = no transpose, T = transpose")
 
         ("batch_count",
          value<int32_t>(&arg.batch_count)->default_value(1),
@@ -789,7 +789,7 @@ try
     bool is_f32 = arg.a_type == HIP_R_32F;
     arg.compute_type
         = compute_type == "" ? (HIPBLAS_COMPUTE_32F) : string_to_hipblas_computetype(compute_type);
-    if(arg.compute_type == static_cast<hipblasComputeType_t>(0))
+    if(arg.compute_type == HIPBLASLT_COMPUTE_TYPE_INVALID)
         throw std::invalid_argument("Invalid value for --compute_type " + compute_type);
 
     //The value HIPBLASLT_DATATYPE_INVALID indicates that the compute_input_typeA has no effect.
@@ -823,7 +823,7 @@ try
 
     arg.bias_source = string_to_hipblaslt_bias_source(bias_source);
 
-    auto scaleString2Enum = [](std::string &s) {
+    auto scaleString2Enum = [](std::string& s) {
         if(s == "s")
             return Arguments::ScalingFormat::Scalar;
         if(s == "v")

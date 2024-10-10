@@ -48,6 +48,7 @@ function display_help()
   echo "    [--codecoverage] build with code coverage profiling enabled"
   echo "    [--gprof] enable profiling functionality with GNU gprof"
   echo "    [--keep-build-tmp] do not remove the temporary build artifacts or build_tmp"
+  echo "    [--logic-yaml-filter] logic filter for developer, example: gfx942/Equality/* for building equality of gfx942 only"
 }
 
 # This function is helpful for dockerfiles that do not have sudo installed, but the default user is root
@@ -59,9 +60,9 @@ supported_distro( )
     printf "supported_distro(): \$ID must be set\n"
     exit 2
   fi
-
+  
   case "${ID}" in
-    ubuntu|centos|rhel|fedora|sles|opensuse-leap|mariner|azurelinux)
+    ubuntu|centos|almalinux|rhel|fedora|sles|opensuse-leap|mariner|azurelinux)
         true
         ;;
     *)  printf "This script is currently supported on Ubuntu, CentOS, RHEL, Fedora, SLES, mariner and azurelinux\n"
@@ -193,7 +194,7 @@ install_packages( )
     fi
   fi
 
-  if [[ ( "${ID}" == "centos" ) || ( "${ID}" == "rhel" ) ]]; then
+  if [[ ( "${ID}" == "centos" ) || ( "${ID}" == "rhel" ) || ( "${ID}" == "almalinux" ) ]]; then
     if [[ "${VERSION_ID}" == "6" ]]; then
       library_dependencies_centos+=( "numactl" )
     else
@@ -225,7 +226,7 @@ install_packages( )
       pip3 install wheel
       ;;
 
-    centos|rhel)
+    centos|rhel|almalinux)
 #     yum -y update brings *all* installed packages up to date
 #     without seeking user approval
 #     elevate_if_not_root yum -y update
@@ -301,8 +302,9 @@ install_msgpack_from_source( )
       pushd .
       mkdir -p ${build_dir}/deps
       cd ${build_dir}/deps
-      git clone -b cpp-3.0.1 https://github.com/msgpack/msgpack-c.git
+      git clone -b cpp-3.0.1 https://github.com/msgpack/msgpack-c.git --depth 1
       cd msgpack-c
+      git fetch --unshallow
       CXX=${cxx} CC=${cc} ${cmake_executable} -DMSGPACK_BUILD_TESTS=OFF -DMSGPACK_BUILD_EXAMPLES=OFF .
       make
       elevate_if_not_root make install
@@ -312,27 +314,34 @@ install_msgpack_from_source( )
 
 install_blis()
 {
-    #Download prebuilt AMD multithreaded blis
-    if [[ ! -e "${build_dir}/deps/blis/lib/libblis.a" ]]; then
-      case "${ID}" in
-          centos|rhel|sles|opensuse-leap)
-              wget -nv -O blis.tar.gz https://github.com/amd/blis/releases/download/2.0/aocl-blis-mt-centos-2.0.tar.gz
-              ;;
-          ubuntu)
-              wget -nv -O blis.tar.gz https://github.com/amd/blis/releases/download/2.0/aocl-blis-mt-ubuntu-2.0.tar.gz
-              ;;
-          *)
-              echo "Unsupported OS for this script"
-              wget -nv -O blis.tar.gz https://github.com/amd/blis/releases/download/2.0/aocl-blis-mt-ubuntu-2.0.tar.gz
-              ;;
-      esac
+    if [[ ! -e "/opt/AMD/aocl/aocl-linux-gcc-4.2.0/gcc/lib_ILP64/libblis-mt.a" ]] &&
+        [[ ! -e "/opt/AMD/aocl/aocl-linux-aocc-4.1.0/aocc/lib_ILP64/libblis-mt.a" ]] &&
+        [[ ! -e "/opt/AMD/aocl/aocl-linux-aocc-4.0/lib_ILP64/libblis-mt.a"  ]] &&
+        [[ ! -e "/usr/local/lib/libblis.a" ]]; then
+        pushd .
+        #Download prebuilt AMD multithreaded blis
+        if [[ ! -e "./blis/lib/libblis.a" ]]; then
+          case "${ID}" in
+              centos|rhel|sles|opensuse-leap)
+                  wget -nv -O blis.tar.gz https://github.com/amd/blis/releases/download/2.0/aocl-blis-mt-centos-2.0.tar.gz
+                  ;;
+              ubuntu)
+                  wget -nv -O blis.tar.gz https://github.com/amd/blis/releases/download/2.0/aocl-blis-mt-ubuntu-2.0.tar.gz
+                  ;;
+              *)
+                  echo "Unsupported OS for this script"
+                  wget -nv -O blis.tar.gz https://github.com/amd/blis/releases/download/2.0/aocl-blis-mt-ubuntu-2.0.tar.gz
+                  ;;
+          esac
 
-      tar -xvf blis.tar.gz
-      rm -rf blis/amd-blis-mt
-      mv amd-blis-mt blis
-      rm blis.tar.gz
-      cd blis/lib
-      ln -sf libblis-mt.a libblis.a
+          tar -xvf blis.tar.gz
+          rm -rf blis/amd-blis-mt
+          mv amd-blis-mt blis
+          rm blis.tar.gz
+          cd blis/lib
+          ln -sf libblis-mt.a libblis.a
+        fi
+        popd
     fi
 }
 
@@ -380,6 +389,7 @@ matrices_dir=
 matrices_dir_install=
 gpu_architecture=all
 cpu_ref_lib=blis
+tensile_logic=
 tensile_cov=
 tensile_threads=$(nproc)
 tensile_fork=
@@ -394,6 +404,7 @@ enable_gprof=false
 keep_build_tmp=false
 disable_hipblaslt_marker=false
 enable_tensile_marker=false
+logic_filter=
 
 
 rocm_path=/opt/rocm
@@ -408,7 +419,7 @@ fi
 # check if we have a modern version of getopt that can handle whitespace and long parameters
 getopt -T
 if [[ $? -eq 4 ]]; then
-  GETOPT_PARSE=$(getopt --name "${0}" --longoptions help,install,clients,dependencies,debug,hip-clang,static,relocatable,codecoverage,relwithdebinfo,address-sanitizer,merge-files,no-merge-files,no_tensile,no-tensile,msgpack,no-msgpack,logic:,cov:,fork:,branch:,test_local_path:,cpu_ref_lib:,build_dir:,use-custom-version:,architecture:,gprof,keep-build-tmp,legacy_hipblas_direct,disable-hipblaslt-marker,enable-tensile-marker --options hicdgrka:j:o:l:f:b:nu:t: -- "$@")
+  GETOPT_PARSE=$(getopt --name "${0}" --longoptions help,install,clients,dependencies,debug,hip-clang,static,relocatable,codecoverage,relwithdebinfo,address-sanitizer,merge-files,no-merge-files,no_tensile,no-tensile,msgpack,no-msgpack,logic:,cov:,fork:,branch:,test_local_path:,cpu_ref_lib:,build_dir:,use-custom-version:,architecture:,gprof,keep-build-tmp,legacy_hipblas_direct,disable-hipblaslt-marker,enable-tensile-marker,logic-yaml-filter: --options hicdgrka:j:o:l:f:b:nu:t: -- "$@")
 else
   echo "Need a new version of getopt"
   exit 1
@@ -525,6 +536,9 @@ while true; do
         --enable-tensile-marker)
             enable_tensile_marker=true
             shift;;
+        --logic_yaml_filter|--logic-yaml-filter)
+            logic_filter=${2}
+            shift 2;;
         --) shift ; break ;;
         *)  echo "Unexpected command line parameter received: '${1}'; aborting";
             exit 1
@@ -621,7 +635,7 @@ if [[ "${install_dependencies}" == true ]]; then
 
   # cmake is needed to install msgpack
   case "${ID}" in
-    centos|rhel|sles|opensuse-leap)
+    centos|rhel|sles|opensuse-leap|almalinux)
       if [[ "${tensile_msgpack_backend}" == true ]]; then
         install_msgpack_from_source
       fi
@@ -735,8 +749,11 @@ pushd .
   tensile_opt=""
   if [[ "${build_tensile}" == false ]]; then
     tensile_opt="${tensile_opt} -DBUILD_WITH_TENSILE=OFF"
-   else
-    tensile_opt="${tensile_opt} -DTensile_LOGIC=${tensile_logic} -DTensile_CODE_OBJECT_VERSION=${tensile_cov}"
+  else
+    if [[ -n "${tensile_logic}" ]]; then
+      tensile_opt="${tensile_opt} -DTensile_LOGIC=${tensile_logic}"
+    fi
+    tensile_opt="${tensile_opt} -DTensile_CODE_OBJECT_VERSION=${tensile_cov}"
     if [[ ${tensile_threads} != $(nproc) ]]; then
       tensile_opt="${tensile_opt} -DTensile_CPU_THREADS=${tensile_threads}"
     fi
@@ -754,6 +771,10 @@ pushd .
 
   if [[ "${build_release}" == false ]]; then
     tensile_opt="${tensile_opt} -DTensile_ASM_DEBUG=ON"
+  fi
+
+  if ! [[ "${logic_filter}" == "" ]]; then
+    tensile_opt="${tensile_opt} -DTensile_LOGIC_FILTER=${logic_filter}"
   fi
 
   if [[ "${enable_gprof}" == true ]]; then
@@ -818,8 +839,8 @@ pushd .
       ubuntu)
         elevate_if_not_root dpkg -i hipblaslt[-\_]*.deb
       ;;
-      centos|rhel)
-        elevate_if_not_root yum -y localinstall hipblaslt-*.rpm
+      centos|rhel|almalinux)
+        elevate_if_not_root yum --allowerasing -y localinstall hipblaslt-*.rpm
       ;;
       fedora)
         elevate_if_not_root dnf install hipblaslt-*.rpm

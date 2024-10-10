@@ -33,8 +33,11 @@
 #include "logging.h"
 #include <algorithm>
 #include <exception>
+#include <mutex>
 
 #pragma STDC CX_LIMITED_RANGE ON
+
+static std::mutex log_mutex;
 
 inline bool isAligned(const void* pointer, size_t byte_count)
 {
@@ -61,17 +64,22 @@ constexpr const char* rocblaslt_datatype_string(hipDataType type)
     }
 }
 
-// return precision string for rocblaslt_compute_type
 constexpr const char* rocblaslt_compute_type_string(rocblaslt_compute_type type)
 {
     switch(type)
     {
     case rocblaslt_compute_f32:
-        return "f32";
+        return "f32_r";
     case rocblaslt_compute_f32_fast_xf32:
-        return "xf32";
+        return "xf32_r";
     case rocblaslt_compute_i32:
-        return "i32";
+        return "i32_r";
+    case rocblaslt_compute_f64:
+        return "f64_r";
+    case rocblaslt_compute_f32_fast_f16:
+        return "f32_f16_r";
+    case rocblaslt_compute_f32_fast_bf16:
+        return "f32_bf16_r";
     default:
         return "invalidType";
     }
@@ -179,6 +187,7 @@ void log_base(rocblaslt_layer_mode layer_mode, const char* func, H head, Ts&&...
 {
     if(get_logger_layer_mode() & layer_mode)
     {
+        std::lock_guard<std::mutex> lock(log_mutex);
         std::string comma_separator = " ";
 
         std::ostream* os = get_logger_os();
@@ -246,7 +255,8 @@ void log_api(const char* func, H head, Ts&&... xs)
 // can be input to the executable rocblaslt-bench.
 template <typename... Ts>
 void log_bench(const char* func, Ts&&... xs)
-{
+{   
+    std::lock_guard<std::mutex> lock(log_mutex);
     std::ostream* os = get_logger_os();
     *os << "hipblaslt-bench ";
     log_arguments_bench(*os, std::forward<Ts>(xs)...);
