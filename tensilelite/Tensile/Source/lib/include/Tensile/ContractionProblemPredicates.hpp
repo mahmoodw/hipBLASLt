@@ -1834,7 +1834,40 @@ namespace Tensile
                 }
             };
 
-            struct Experimental : public Predicate_CRTP<Experimental, ContractionProblemGemm>
+            // struct Experimental : public Predicate_CRTP<Experimental, ContractionProblemGemm>
+            // {
+            //     enum
+            //     {
+            //         HasIndex = false,
+            //         HasValue = false
+            //     };
+
+            //     Experimental() = default;
+
+            //     static std::string Type()
+            //     {
+            //         return "Experimental";
+            //     }
+
+            //     virtual bool operator()(ContractionProblemGemm const& problem) const override
+            //     {
+            //         return (problem.performanceMetric() == PerformanceMetric::Experimental);
+            //     }
+
+            //     virtual bool debugEval(ContractionProblemGemm const& problem,
+            //                            std::ostream&                 stream) const override
+            //     {
+            //         return debugEvalCmp(problem,
+            //                             stream,
+            //                             "prob",
+            //                             problem.performanceMetric(),
+            //                             "==",
+            //                             "sol: PerformanceMetric::Experimental",
+            //                             PerformanceMetric::Experimental);
+            //     }
+            // };
+
+            struct ExperimentalDTree : public Predicate_CRTP<ExperimentalDTree, ContractionProblemGemm>
             {
                 enum
                 {
@@ -1842,28 +1875,61 @@ namespace Tensile
                     HasValue = false
                 };
 
-                Experimental() = default;
+                ExperimentalDTree() = default;
 
                 static std::string Type()
                 {
-                    return "Experimental";
+                    return "ExperimentalDTree";
                 }
 
                 virtual bool operator()(ContractionProblemGemm const& problem) const override
                 {
-                    return (problem.performanceMetric() == PerformanceMetric::Experimental);
+                    return (problem.performanceMetric() == PerformanceMetric::ExperimentalDTree);
                 }
 
                 virtual bool debugEval(ContractionProblemGemm const& problem,
-                                       std::ostream&                 stream) const override
+                        std::ostream&                 stream) const override
                 {
                     return debugEvalCmp(problem,
                                         stream,
                                         "prob",
                                         problem.performanceMetric(),
                                         "==",
-                                        "sol: PerformanceMetric::Experimental",
-                                        PerformanceMetric::Experimental);
+                                        "sol: PerformanceMetric::ExperimentalDTree",
+                                        PerformanceMetric::ExperimentalDTree);
+                }
+            };
+
+            struct ExperimentalStreamK : public Predicate_CRTP<ExperimentalDTree, ContractionProblemGemm>
+            {
+                enum
+                {
+                    HasIndex = false,
+                    HasValue = false
+                };
+
+                ExperimentalDTree() = default;
+
+                static std::string Type()
+                {
+                    return "ExperimentalStreamK";
+                }
+
+                virtual bool operator()(ContractionProblemGemm const& problem) const override
+                {
+                    return (problem.performanceMetric() == PerformanceMetric::ExperimentalStreamK);
+                }
+
+                virtual bool debugEval(ContractionProblemGemm const& problem,
+                        std::ostream&                 stream) const override
+                {
+                    return debugEvalCmp(problem,
+                                        stream,
+                                        "prob",
+                                        problem.performanceMetric(),
+                                        "==",
+                                        "sol: PerformanceMetric::ExperimentalStreamK",
+                                        PerformanceMetric::ExperimentalStreamK);
                 }
             };
 
