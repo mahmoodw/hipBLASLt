@@ -320,10 +320,6 @@ class KernelWriterAssembly(KernelWriter):
       if tChar == "Metadata":
         localReadWidth = (self.states.lrvwTileMetadata * tP["bpeDS"]) / bpr
 
-    # for directToLds x2/x4 support
-    if kernel["DirectToLds%s"%tChar]:
-      localReadWidth  = 1    # for fp64 its f32
-
     #localReadStridePerpendicular = 0
     localRead2Perpendicular = False
     localReadStrideCoalesced = kernel[tP["tt"]] * tP["bpeDS"] // bpr
@@ -450,11 +446,6 @@ class KernelWriterAssembly(KernelWriter):
     if kernel["ProblemType"]["StochasticRounding"]:
       module.add(self.defineSgpr("RNDSeed", 1))
 
-    if kernel["LocalWriteUseSgprA"]:
-        module.add(self.defineSgpr("LocalWriteAddrA", 1))
-    if kernel["LocalWriteUseSgprB"]:
-        module.add(self.defineSgpr("LocalWriteAddrB", 1))
-
     if kernel["_UseSgprForGRO"]:
       needFirstSgprOffset = kernel["DirectToLdsA"] and kernel["UseInstOffsetForGRO"]
       numberOfSgpr = self.states.a.numVgprGlobalReadOffsets if needFirstSgprOffset else (self.states.a.numVgprGlobalReadOffsets-1)
@@ -538,7 +529,7 @@ class KernelWriterAssembly(KernelWriter):
     ri = 0
     if self.states.a.numVgprValu > 0: # Do not generate vgprValuA if numVgprValuA is 0
       numBiFactor = numBi
-      if kernel["DirectToVgprA"] and self.states.lrvwTileA > 1:
+      if kernel["DirectToVgprA"] and (self.states.packDTVA or self.states.convDTVA):
         # DirectToVgpr case, we need LoopIters * 2 buffers
         numBiFactor = kernel["LoopIters"] * 2
       if self.states.lrvwTileA > 1:
@@ -556,14 +547,14 @@ class KernelWriterAssembly(KernelWriter):
                 module.add(RegSet("v", "vgprValuA_X%u_I%u_D%u"%(bi,iui,data), self.states.a.startVgprValuPack+ri))
                 ri += ceil(kernel["VectorWidthA"] * tPA["bpe"] / self.states.bpr) * kernel["MIWaveTileA"] // kernel["VectorWidthA"]
       else:
-        for bi in range(0,PLR): # buffer indices
+        for bi in range(0,numBiFactor): # buffer indices
           for iui in range(0, kernel["InnerUnroll"]):
             module.add(RegSet("v", "vgprValuA_X%u_I%u"%(bi,iui), self.states.a.startVgprValu+ri))
             ri += self.states.a.numVgprValuPerBlock
         ri = 0
         if tPA["bpe"] < 4 and not kernel["UnrollMajorLDSA"]:
           for data in range(1,int(self.states.bpr/tPA["bpeDS"])):
-            for bi in range(0,PLR): # buffer indices
+            for bi in range(0,numBiFactor): # buffer indices
               if bi % self.states.numVgprBufferPackA == 0:
                 ri = (data-1) * kernel["InnerUnroll"] * self.states.numVgprBufferPackA * self.states.a.numVgprValuPerBlock
               for iui in range(0, kernel["InnerUnroll"]):
@@ -573,7 +564,7 @@ class KernelWriterAssembly(KernelWriter):
     ri = 0
     if self.states.b.numVgprValu > 0: # Do not generate vgprValuA if numVgprValuA is 0
       numBiFactor = numBi
-      if kernel["DirectToVgprB"] and self.states.lrvwTileB > 1:
+      if kernel["DirectToVgprB"] and (self.states.packDTVB or self.states.convDTVB):
         # DirectToVgpr case, we need LoopIters * 2 buffers
         numBiFactor = kernel["LoopIters"] * 2
       if self.states.lrvwTileB > 1:
@@ -591,14 +582,14 @@ class KernelWriterAssembly(KernelWriter):
                 module.add(RegSet("v", "vgprValuB_X%u_I%u_D%u"%(bi,iui,data), self.states.b.startVgprValuPack+ri))
                 ri += ceil(kernel["VectorWidthB"] * tPB["bpe"] / self.states.bpr) * kernel["MIWaveTileB"] // kernel["VectorWidthB"]
       else:
-        for bi in range(0,PLR): # buffer indices
+        for bi in range(0,numBiFactor): # buffer indices
           for iui in range(0, kernel["InnerUnroll"]):
             module.add(RegSet("v", "vgprValuB_X%u_I%u"%(bi,iui), self.states.b.startVgprValu+ri))
             ri += self.states.b.numVgprValuPerBlock
         ri = 0
         if tPB["bpe"] < 4 and not kernel["UnrollMajorLDSB"]:
           for data in range(1,int(self.states.bpr/tPB["bpeDS"])):
-            for bi in range(0,PLR): # buffer indices
+            for bi in range(0,numBiFactor): # buffer indices
               if bi % self.states.numVgprBufferPackB == 0:
                 ri = (data-1) * kernel["InnerUnroll"] * self.states.numVgprBufferPackB * self.states.b.numVgprValuPerBlock
               for iui in range(0, kernel["InnerUnroll"]):
@@ -1084,7 +1075,7 @@ class KernelWriterAssembly(KernelWriter):
     module.setNoOpt(True)
     return module
 
-  def checkResources(self, mkb: KernelBody):
+  def checkResources(self, kernel, mkb: KernelBody):
     # register allocation
     totalVgprs = self.vgprPool.size()
     totalAgprs = self.agprPool.size()
@@ -1103,7 +1094,10 @@ class KernelWriterAssembly(KernelWriter):
       elif self.states.overflowedResources == 4:
         msg = "Occupancy limit"
       elif self.states.overflowedResources == 5:
-        msg = "reading and writing LDS at same time require 2 LDS buffer"
+        if kernel["DirectToLdsA"] or kernel["DirectToLdsB"]:
+          msg = "cannot schedule local read with DirectToLds"
+        else:
+          msg = "reading and writing LDS at same time require 2 LDS buffer"
       elif self.states.overflowedResources == 6:
         msg = "SIA2 better with occupancy 2"
       else:
@@ -3418,6 +3412,8 @@ class KernelWriterAssembly(KernelWriter):
 
     if kernel["LocalWriteUseSgpr%s"%tc]:
       # TODO: Can refactor code above to Compute this directly:
+      if self.states.archCaps["CrosslaneWait"]:
+        module.add(SNop(waitState=0, comment="1 wait states required before reading vgpr by lane"))
       module.add(VReadfirstlaneB32(
           dst=sgpr("LocalWriteAddr%s"%tc), \
           src=vgpr(destVgpr), \
@@ -4861,7 +4857,8 @@ class KernelWriterAssembly(KernelWriter):
     # DirectToVgpr + pack special case
     # offset vgprBuffer_new
     packDTV = self.states.packDTVA if tP["isA"] else self.states.packDTVB
-    if packDTV:
+    convDTV = self.states.convDTVA if tP["isA"] else self.states.convDTVB
+    if packDTV or convDTV:
       # DTV + pack case, offset bufferIdx for local read packing instructions
       numBi = kernel["LoopIters"]
       vgprBuffer_new += vregSetIdx * numBi
@@ -4870,7 +4867,7 @@ class KernelWriterAssembly(KernelWriter):
     iui_new_offset = iui%numReadsIterCoalesced*vgprPerInput
     ab_new = idxAB*vgprPerInput*numReadsIterCoalesced
     abStr = "Valu%c_X%u_I%u+%u+%u+%u" % (tc, vgprBuffer_new, iui_new, ab_new, vgprBuffer_new_offset, iui_new_offset)
-    if kernel["DirectToVgpr%c"%tc] and not packDTV:
+    if kernel["DirectToVgpr%c"%tc] and not (packDTV or convDTV):
       # overwrite aStr/bStr for DirectToVgpr (except for pack DTV case)
       numVgprPerBlock = statesAorB.numVgprG2LAllocated
       numVgprPerBlock //= 2 # DTV case, buffer is doubled. //2 to calculate single size
@@ -5976,6 +5973,10 @@ class KernelWriterAssembly(KernelWriter):
               loopCnt += 1
               graIdx = i * self.states.rpgo if kernel["BufferLoad"] else i * self.states.rpga
               g2lIdx = i * loadWidth * tP["bpeRatio"]
+              if (tP["isA"] or tP["isB"]) and kernel["DirectToVgpr%s"%tc] and kernel["ConvertAfterDS"]:
+                # DTV + ConvertAfterDS case, if bpe > bpeGR, we need to shift g2lIdx for conversion
+                if tP["bpe"] > tP["bpeGR"]:
+                  g2lIdx *= tP["bpe"] // tP["bpeGR"]
 
               destVgprHi = None
               dataIsByte = False
@@ -6009,12 +6010,17 @@ class KernelWriterAssembly(KernelWriter):
                   #   numElementsPerLoad = 2
                   # elif self.states.archCaps["HasEccHalf"]:
                   #   destVgprHi = self.vgprPool.checkOut(1, 'destVgprHi')
+                  if (not tP["isM"]) and kernel["DirectToLds%c"%tc] and (not tP["tlu"]) and tP["glvw"]>=4 and kernel["AssertSummationElementMultiple"] % 4 == 0:
+                    # Pack four byte values into a single load dword (for DTL only for now)
+                    numElementsPerLoad = 4
+                    dataIsByte = False
+                  else:
+                    dataIsByte = True
 
                   # Check out 3 regs once , for component 1,2,3 (r = 1,2,3)
                   if r == 1:
                     packInt8Code = Module()
                     destVgprHi = self.vgprPool.checkOut( int8TempVgpr , 'destVgprHi')
-                  dataIsByte = True
                   regIdx = r // 4
                   if (tP["localWriteInstruction"].blockWidth <= 0.5) and (r%2 == 0) and not tP["isM"]:
                       numVgprG2L = self.states.a.numVgprG2L if tc == 'A' else self.states.b.numVgprG2L
@@ -6432,6 +6438,10 @@ class KernelWriterAssembly(KernelWriter):
               loopCnt += 1
               graIdx = i * self.states.rpgo if kernel["BufferLoad"] else i * self.states.rpga
               g2lIdx = i * loadWidth * tP["bpeRatio"]
+              if (tP["isA"] or tP["isB"]) and kernel["DirectToVgpr%s"%tc] and kernel["ConvertAfterDS"]:
+                # DTV + ConvertAfterDS case, if bpe > bpeGR, we need to shift g2lIdx for conversion
+                if tP["bpe"] > tP["bpeGR"]:
+                  g2lIdx *= tP["bpe"] // tP["bpeGR"]
               # Each load may contains a small bundle of instructions, package them together in loadModule:
               loadModule = Module("load%u"%loopCnt)
               imod.middle.add(loadModule)
@@ -6682,11 +6692,18 @@ class KernelWriterAssembly(KernelWriter):
       if internalPointerSwap:
         tP["localWriteSwapByteOffset"] = 0
       else:
-        module.add(VAndB32(
-            dst=vgpr("LocalWriteAddr%s"%tP["tensorChar"]), \
-            src0=resetMask, \
-            src1=vgpr("LocalWriteAddr%s"%tP["tensorChar"]), \
-            comment="reset to Red"))
+        if kernel["LocalWriteUseSgpr%s"%tc]:
+          module.add(SAndB32(
+              dst=sgpr("LocalWriteAddr%s"%tP["tensorChar"]), \
+              src0=resetMask, \
+              src1=sgpr("LocalWriteAddr%s"%tP["tensorChar"]), \
+              comment="reset to Red"))
+        else:
+          module.add(VAndB32(
+              dst=vgpr("LocalWriteAddr%s"%tP["tensorChar"]), \
+              src0=resetMask, \
+              src1=vgpr("LocalWriteAddr%s"%tP["tensorChar"]), \
+              comment="reset to Red"))
     if needMetaReset:
       if kernel["DirectToVgprSparseMetadata"]:
         tP["metadataWriteSwapByteOffset"] = 0
@@ -7409,27 +7426,6 @@ class KernelWriterAssembly(KernelWriter):
     return module
 
   ##############################################################################
-  # Local Read offset conversion for DirectToLds
-  ##############################################################################
-  def localReadOffsetConvForDTL(self, kernel, tP, offset_val):
-    tc = tP["tensorChar"]
-    bit2 = offset_val & 4
-    bit3 = offset_val & 8
-    bit4 = offset_val & 16
-    bit5 = offset_val & 32
-    if (kernel["GlobalReadVectorWidth%s"%tc] * tP["bpe"] == 8):
-      # dword_x2 case
-      # (bit2<<3) | (bit3 >>1) | (bit4>>1) | (bit5>>1)
-      newVal = (bit2<<3) | (bit3 >>1) | (bit4>>1) | (bit5>>1)
-    else:  #if (kernel["GlobalReadVectorWidth%s"%tc] * tP["bpe"] == 16):  # most preferred case
-      # dword_x4 case
-      # (bit2<<3) | (bit3 <<1) | (bit4>>2) | (bit5>>2)
-      newVal = (bit2<<3) | (bit3 <<1) | (bit4>>2) | (bit5>>2)
-    offset_val = offset_val & (~0x3c)
-    offset_val = offset_val | newVal
-    return offset_val
-
-  ##############################################################################
   # Local Read: Increment A/B
   ##############################################################################
   def localReadInc(self, kernel, iui, tP):
@@ -7448,21 +7444,8 @@ class KernelWriterAssembly(KernelWriter):
       if kernel["EnableMatrixInstruction"]:
         matrixInstK = kernel["MatrixInstK"]
         if kernel["UnrollMajorLDS%s" % tc]:
-          if kernel["DirectToLds%s" % tc] and kernel["GlobalReadVectorWidth%c"%tc] * tP["bpe"] > 4:
-            # DirectToLds special case. Need special address coonversion
-            localReadOffset = kernel["MatrixInstK"] * max(self.states.numReadsIterCoalescedA,self.states.numReadsIterCoalescedB)
-            localReadOffset *= tP["bpe"]
-            prev_offset_val = 0 if iui == 0 else localReadOffset * iui
-            offset_val = localReadOffset * (iui + 1)
-            # offset conversion or DirectToLds
-            prev_offset_val= self.localReadOffsetConvForDTL(kernel, tP, prev_offset_val)
-            offset_val= self.localReadOffsetConvForDTL(kernel, tP, offset_val)
-            inc = offset_val - prev_offset_val
-            matrixInstK = 1 # multiplying matrixInstK is not necessary
-            comment = ""
-          else:
-            inc = tP["bpeDS"] * max(self.states.numReadsIterCoalescedA,self.states.numReadsIterCoalescedB)
-            comment = " (bpeDS)"
+          inc = tP["bpeDS"] * max(self.states.numReadsIterCoalescedA,self.states.numReadsIterCoalescedB)
+          comment = " (bpeDS)"
         inc *= matrixInstK
         if kernel["ProblemType"]["Sparse"]:
           if (kernel["ProblemType"]["Sparse"] == 2 and tc == "B") or (kernel["ProblemType"]["Sparse"] == 1 and tc == "A"):
@@ -9966,45 +9949,49 @@ class KernelWriterAssembly(KernelWriter):
       # Nested buffer load implementation function for easy branching for soffset
       def bufferLoadImpl(soffset):
         nonlocal rv
+        factor = max(1, 4//bpl)
+        dst = None if lds else vgpr(destVgpr, rpv*factor)
         if bpl==1 and hi16:
-          rv.add(BufferLoadD16HIU8(dst=vgpr(destVgpr, rpv*4), vaddr=addr0, saddr=addr1, \
+          rv.add(BufferLoadD16HIU8(dst=dst, vaddr=addr0, saddr=addr1, \
                                   soffset=soffset, mubuf=mubuf, comment=comment))
           return rv
         elif bpl==1 and not hi16:
-          rv.add(BufferLoadD16U8(dst=vgpr(destVgpr, rpv*4), vaddr=addr0, saddr=addr1, \
+          rv.add(BufferLoadD16U8(dst=dst, vaddr=addr0, saddr=addr1, \
                                 soffset=soffset, mubuf=mubuf, comment=comment))
           return rv
         elif bpl==2 and hi16:
-          rv.add(BufferLoadD16HIB16(dst=vgpr(destVgpr, rpv*2), vaddr=addr0, saddr=addr1, \
+          rv.add(BufferLoadD16HIB16(dst=dst, vaddr=addr0, saddr=addr1, \
                                     soffset=soffset, mubuf=mubuf, comment=comment))
           return rv
         elif bpl==2 and not hi16:
-          rv.add(BufferLoadD16B16(dst=vgpr(destVgpr, rpv*2), vaddr=addr0, saddr=addr1, \
+          rv.add(BufferLoadD16B16(dst=dst, vaddr=addr0, saddr=addr1, \
                                   soffset=soffset, mubuf=mubuf, comment=comment))
           return rv
         elif bpl==4:
-          rv.add(BufferLoadB32(dst=vgpr(destVgpr, rpv), vaddr=addr0, saddr=addr1, \
+          rv.add(BufferLoadB32(dst=dst, vaddr=addr0, saddr=addr1, \
                               soffset=soffset, mubuf=mubuf, comment=comment))
           return rv
         elif bpl==8:
-          rv.add(BufferLoadB64(dst=vgpr(destVgpr, rpv), vaddr=addr0, saddr=addr1, \
+          rv.add(BufferLoadB64(dst=dst, vaddr=addr0, saddr=addr1, \
                               soffset=soffset, mubuf=mubuf, comment=comment))
           return rv
         elif bpl==16:
-          rv.add(BufferLoadB128(dst=vgpr(destVgpr, rpv), vaddr=addr0, saddr=addr1, \
+          rv.add(BufferLoadB128(dst=dst, vaddr=addr0, saddr=addr1, \
                                 soffset=soffset, mubuf=mubuf, comment=comment))
           return rv
         elif bpl==32:
           # split into two dwordx4 loads. Second load offset is +0.5 bpl
           rv = Module("emulated _buffer_load_b256")
-          rv.add(BufferLoadB128(dst=vgpr(destVgpr, rpv//2), vaddr=addr0, saddr=addr1, \
+          dst = None if lds else vgpr(destVgpr, rpv//2)
+          rv.add(BufferLoadB128(dst=dst, vaddr=addr0, saddr=addr1, \
                                 soffset=soffset, mubuf=mubuf, comment=comment))
           mubuf2 = MUBUFModifiers(offen=True, offset12=offset+bpl/2, glc=glc, slc=slc, nt=nt, lds=lds)
           if isinstance(destVgpr, str):
             dst2 = destVgpr + "+" + str(int(rpv//2))
           elif isinstance(destVgpr, int):
             dst2 = int(destVgpr + int(rpv//2))
-          rv.add(BufferLoadB128(dst=vgpr(dst2, rpv//2), vaddr=addr0, saddr=addr1, \
+          dst = None if lds else vgpr(dst2, rpv//2)
+          rv.add(BufferLoadB128(dst=dst, vaddr=addr0, saddr=addr1, \
                                 soffset=soffset, mubuf=mubuf2, comment=comment))
           return rv
         else:
@@ -10699,7 +10686,7 @@ class KernelWriterAssembly(KernelWriter):
                               comment="Local address scaled by BPE"))
     if kernel["LdsOffsetBias"] != 0:
       module.add(VAddU32(dst=vgpr(offsetVgpr), \
-                         src0=(kernel["LdsOffsetBias"]*kernel["ProblemType"]["DataType"].numBytes()), \
+                         src0=(kernel["LdsOffsetBias"]), \
                          src1=vgpr(offsetVgpr), \
                          comment="add lds offset"))
 
@@ -10759,7 +10746,7 @@ class KernelWriterAssembly(KernelWriter):
 
     if kernel["LdsOffsetBias"] != 0:
       module.add(VAddU32(dst=vgpr(offsetVgpr), \
-                         src0=(kernel["LdsOffsetBias"]*kernel["ProblemType"]["DataType"].numBytes()), \
+                         src0=(kernel["LdsOffsetBias"]), \
                          src1=vgpr(offsetVgpr), \
                          comment="add bias lds offset"))
 
