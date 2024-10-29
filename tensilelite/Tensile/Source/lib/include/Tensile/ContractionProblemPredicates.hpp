@@ -1834,39 +1834,6 @@ namespace Tensile
                 }
             };
 
-            // struct Experimental : public Predicate_CRTP<Experimental, ContractionProblemGemm>
-            // {
-            //     enum
-            //     {
-            //         HasIndex = false,
-            //         HasValue = false
-            //     };
-
-            //     Experimental() = default;
-
-            //     static std::string Type()
-            //     {
-            //         return "Experimental";
-            //     }
-
-            //     virtual bool operator()(ContractionProblemGemm const& problem) const override
-            //     {
-            //         return (problem.performanceMetric() == PerformanceMetric::Experimental);
-            //     }
-
-            //     virtual bool debugEval(ContractionProblemGemm const& problem,
-            //                            std::ostream&                 stream) const override
-            //     {
-            //         return debugEvalCmp(problem,
-            //                             stream,
-            //                             "prob",
-            //                             problem.performanceMetric(),
-            //                             "==",
-            //                             "sol: PerformanceMetric::Experimental",
-            //                             PerformanceMetric::Experimental);
-            //     }
-            // };
-
             struct ExperimentalDTree : public Predicate_CRTP<ExperimentalDTree, ContractionProblemGemm>
             {
                 enum
