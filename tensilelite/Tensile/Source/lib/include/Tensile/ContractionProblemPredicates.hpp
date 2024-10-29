@@ -1900,7 +1900,7 @@ namespace Tensile
                 }
             };
 
-            struct ExperimentalStreamK : public Predicate_CRTP<ExperimentalDTree, ContractionProblemGemm>
+            struct ExperimentalStreamK : public Predicate_CRTP<ExperimentalStreamK, ContractionProblemGemm>
             {
                 enum
                 {
@@ -1908,7 +1908,7 @@ namespace Tensile
                     HasValue = false
                 };
 
-                ExperimentalDTree() = default;
+                ExperimentalStreamK() = default;
 
                 static std::string Type()
                 {

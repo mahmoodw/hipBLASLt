@@ -895,7 +895,7 @@ namespace Tensile
         PerformanceMetric performanceMetric() const
         {
             const int experimental = Debug::Instance().useExperimentalSelection();
-            // return experimental ? PerformanceMetric::Experimental : m_performanceMetric;
+            auto option       = static_cast<ExperimentalOption>(experimental);
 
             switch(option)
             {
@@ -906,7 +906,7 @@ namespace Tensile
                 return PerformanceMetric::ExperimentalDTree;
 
             case ExperimentalOption::StreamK:
-                return PerformanceMetric::StreamK;
+                return PerformanceMetric::ExperimentalStreamK;
 
             default:
                 // warning?

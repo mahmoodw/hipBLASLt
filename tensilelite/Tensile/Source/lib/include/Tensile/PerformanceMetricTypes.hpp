@@ -47,6 +47,17 @@ namespace Tensile
  */
 
     /**
+ * Experimental options
+ */
+    enum class ExperimentalOption : int
+    {
+        None  = 0,
+        DTree  = 1,
+        StreamK = 2,
+        Count
+    };
+
+    /**
  * Performance Metric
  */
     enum class PerformanceMetric : int
