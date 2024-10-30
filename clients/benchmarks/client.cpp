@@ -419,11 +419,11 @@ try
 
         ("transA",
          value<char>(&arg.transA)->default_value('N'),
-         "N = no transpose, T = transpose, C = conjugate transpose")
+         "N = no transpose, T = transpose")
 
         ("transB",
          value<char>(&arg.transB)->default_value('N'),
-         "N = no transpose, T = transpose, C = conjugate transpose")
+         "N = no transpose, T = transpose")
 
         ("batch_count",
          value<int32_t>(&arg.batch_count)->default_value(1),
@@ -530,8 +530,8 @@ try
          "C and D are stored in same memory")
 
         ("workspace",
-         value<size_t>(&arg.user_allocated_workspace)->default_value(0),
-         "Set fixed workspace memory size instead of using hipblaslt managed memory")
+         value<size_t>(&arg.user_allocated_workspace)->default_value(128 * 1024 * 1024),
+         "Set fixed workspace memory size (bytes) instead of using hipblaslt managed memory")
 
         ("log_function_name",
          bool_switch(&log_function_name)->default_value(false),
@@ -557,6 +557,12 @@ try
         ("use_gpu_timer",
          value<bool>(&arg.use_gpu_timer)->default_value(false),
          "Use hipEventElapsedTime to profile elapsed time.")
+
+        ("skip_slow_solution_ratio",
+          value<float>(&arg.skip_slow_solution_ratio)->default_value(0.0),
+          "Specifies a ratio to skip slow solution when warm up stage. "
+          "Skip condition: (current solution's warm up time * ratio) > best solution's warm up time. "
+          "Ratio range: 0 ~ 1. 0 means no skip.")
 
         ("splitk",
          valueVec<uint32_t>(&gsu_vector),
@@ -789,7 +795,7 @@ try
     bool is_f32 = arg.a_type == HIP_R_32F;
     arg.compute_type
         = compute_type == "" ? (HIPBLAS_COMPUTE_32F) : string_to_hipblas_computetype(compute_type);
-    if(arg.compute_type == static_cast<hipblasComputeType_t>(0))
+    if(arg.compute_type == HIPBLASLT_COMPUTE_TYPE_INVALID)
         throw std::invalid_argument("Invalid value for --compute_type " + compute_type);
 
     //The value HIPBLASLT_DATATYPE_INVALID indicates that the compute_input_typeA has no effect.
@@ -843,6 +849,10 @@ try
     int copied = snprintf(arg.function, sizeof(arg.function), "%s", function.c_str());
     if(copied <= 0 || copied >= sizeof(arg.function))
         throw std::invalid_argument("Invalid value for --function");
+
+    if(arg.skip_slow_solution_ratio < 0 || arg.skip_slow_solution_ratio > 1)
+        throw std::invalid_argument(
+            "Valid value for --skip_slow_solution_ratio is in range (0.0 ~ 1.0).");
 
     if(verify)
     {
