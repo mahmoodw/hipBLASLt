@@ -189,10 +189,6 @@ namespace Tensile
         if(exp_select)
             m_experimentSelection = strtol(exp_select, nullptr, 0);
 
-        const char* sk_select = std::getenv("TENSILE_STREAMK_LIBRARY");
-        if(sk_select)
-            m_experimentSelection = strtol(sk_select, nullptr, 0) != 0 ? 2 : m_experimentSelection;
-
         const char* solsel_trace = std::getenv("TENSILE_SOLUTION_SELECTION_TRACE");
         if(solsel_trace)
             m_solselTrace = strtol(solsel_trace, nullptr, 0) != 0;
