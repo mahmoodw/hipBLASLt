@@ -101,9 +101,8 @@ namespace Tensile
 #endif
         }
 
-
-        __attribute__((always_inline))
-        inline void markerStart(const char* name, const std::string& objPath) const
+        __attribute__((always_inline)) inline void markerStart(const char*        name,
+                                                               const std::string& objPath) const
         {
 #ifdef Tensile_ENABLE_MARKER
             if(m_printMarker)

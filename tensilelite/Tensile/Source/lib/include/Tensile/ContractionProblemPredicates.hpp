@@ -31,8 +31,8 @@
 #include <Tensile/KernelLanguageTypes.hpp>
 #include <Tensile/Predicates.hpp>
 
-#include <Tensile/hip/HipHardware.hpp>
 #include <Tensile/AMDGPU.hpp>
+#include <Tensile/hip/HipHardware.hpp>
 
 #include <array>
 #include <cmath>
@@ -1103,7 +1103,7 @@ namespace Tensile
                 }
 
                 virtual bool debugEval(ContractionProblemGemm const& problem,
-                                       std::ostream&             stream) const override
+                                       std::ostream&                 stream) const override
                 {
                     bool rv = (*this)(problem);
 
@@ -1141,7 +1141,7 @@ namespace Tensile
                 }
 
                 virtual bool debugEval(ContractionProblemGemm const& problem,
-                                       std::ostream&             stream) const override
+                                       std::ostream&                 stream) const override
                 {
                     bool rv = (*this)(problem);
 
@@ -1393,14 +1393,12 @@ namespace Tensile
                 {
                     bool rv = (*this)(problem);
 
-                    stream << rv << ": " << *this << ": ("
-                           << " (" << problem.a().strides()[1] << " * " << value.depthUorMT0
-                           << " + " << value.shiftPtrElemA << ") * " << problem.a().elementBytes()
-                           << " < 4294967296 && "
-                           << " (" << problem.b().strides()[1] << " * " << value.depthUorMT1
-                           << " + " << value.shiftPtrElemB << ") * " << problem.b().elementBytes()
-                           << " < 4294967296"
-                           << ")" << std::endl;
+                    stream << rv << ": " << *this << ": (" << " (" << problem.a().strides()[1]
+                           << " * " << value.depthUorMT0 << " + " << value.shiftPtrElemA << ") * "
+                           << problem.a().elementBytes() << " < 4294967296 && " << " ("
+                           << problem.b().strides()[1] << " * " << value.depthUorMT1 << " + "
+                           << value.shiftPtrElemB << ") * " << problem.b().elementBytes()
+                           << " < 4294967296" << ")" << std::endl;
 
                     return rv;
                 }
@@ -1452,8 +1450,8 @@ namespace Tensile
                     bool rv = (*this)(problem);
 
                     stream << rv << ": " << *this << ": (" << problem.c().strides()[1] << " * "
-                           << problem.c().elementBytes() << " * " << value << " < 4294967296"
-                           << ")" << std::endl;
+                           << problem.c().elementBytes() << " * " << value << " < 4294967296" << ")"
+                           << std::endl;
 
                     return rv;
                 }
@@ -1497,8 +1495,8 @@ namespace Tensile
                 {
                     bool rv = (*this)(problem);
                     stream << rv << ": " << *this << ": (" << problem.d().strides()[1] << " * "
-                           << problem.d().elementBytes() << " * " << value << " < 4294967296"
-                           << ")" << std::endl;
+                           << problem.d().elementBytes() << " * " << value << " < 4294967296" << ")"
+                           << std::endl;
                     return rv;
                 }
             };
@@ -1834,7 +1832,8 @@ namespace Tensile
                 }
             };
 
-            struct ExperimentalDTree : public Predicate_CRTP<ExperimentalDTree, ContractionProblemGemm>
+            struct ExperimentalDTree
+                : public Predicate_CRTP<ExperimentalDTree, ContractionProblemGemm>
             {
                 enum
                 {
@@ -1855,7 +1854,7 @@ namespace Tensile
                 }
 
                 virtual bool debugEval(ContractionProblemGemm const& problem,
-                        std::ostream&                 stream) const override
+                                       std::ostream&                 stream) const override
                 {
                     return debugEvalCmp(problem,
                                         stream,
@@ -1867,7 +1866,8 @@ namespace Tensile
                 }
             };
 
-            struct ExperimentalStreamK : public Predicate_CRTP<ExperimentalStreamK, ContractionProblemGemm>
+            struct ExperimentalStreamK
+                : public Predicate_CRTP<ExperimentalStreamK, ContractionProblemGemm>
             {
                 enum
                 {
@@ -1888,7 +1888,7 @@ namespace Tensile
                 }
 
                 virtual bool debugEval(ContractionProblemGemm const& problem,
-                        std::ostream&                 stream) const override
+                                       std::ostream&                 stream) const override
                 {
                     return debugEvalCmp(problem,
                                         stream,
@@ -2017,17 +2017,18 @@ namespace Tensile
 
                 virtual bool operator()(ContractionProblemGemm const& problem) const override
                 {
-		    if (value == ActivationType::All)
-			return true;
-		    if (problem.activationType() == value || problem.activationType() == ActivationType::None)
-			return true;
-		    if (value == ActivationType::Hipblaslt_all
-		        && (problem.activationType() == ActivationType::DGelu
-			    || problem.activationType() == ActivationType::Gelu
-			    || problem.activationType() == ActivationType::Relu))
-			return true;
+                    if(value == ActivationType::All)
+                        return true;
+                    if(problem.activationType() == value
+                       || problem.activationType() == ActivationType::None)
+                        return true;
+                    if(value == ActivationType::Hipblaslt_all
+                       && (problem.activationType() == ActivationType::DGelu
+                           || problem.activationType() == ActivationType::Gelu
+                           || problem.activationType() == ActivationType::Relu))
+                        return true;
 
-		    return false;
+                    return false;
                 }
 
                 virtual bool debugEval(ContractionProblemGemm const& problem,

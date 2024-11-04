@@ -51,8 +51,8 @@ namespace Tensile
  */
     enum class ExperimentalOption : int
     {
-        None  = 0,
-        DTree  = 1,
+        None    = 0,
+        DTree   = 1,
         StreamK = 2,
         Count
     };

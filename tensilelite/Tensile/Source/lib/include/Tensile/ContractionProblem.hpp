@@ -895,7 +895,7 @@ namespace Tensile
         PerformanceMetric performanceMetric() const
         {
             const int experimental = Debug::Instance().useExperimentalSelection();
-            auto option       = static_cast<ExperimentalOption>(experimental);
+            auto      option       = static_cast<ExperimentalOption>(experimental);
 
             switch(option)
             {
@@ -1113,7 +1113,7 @@ namespace Tensile
             return m_eligibleForPK;
         }
 
-        double  arithmeticIntensity() const
+        double arithmeticIntensity() const
         {
             return m_arithmeticIntensity;
         }
@@ -1195,14 +1195,14 @@ namespace Tensile
 
         KernelLanguage    m_kernelLanguage    = KernelLanguage::Any;
         PerformanceMetric m_performanceMetric = PerformanceMetric::DeviceEfficiency;
-        double m_arithmeticIntensity;
-        DataType m_alphaType         = DataType::None; // if not assigned, will follow d-type
-        DataType m_betaType          = DataType::None; // for bwd-compatible
-        DataType m_scaleAType        = DataType::None; // if not assigned, will follow alpha-type
-        DataType m_scaleBType        = DataType::None; // if not assigned, will follow alpha-type
-        DataType m_scaleCType        = DataType::None; // if not assigned, will follow beta-type
-        DataType m_scaleDType        = DataType::None; // if not assigned, will follow beta-type
-        DataType m_scaleAlphaVecType = DataType::None; // if not assigned, will follow alpha-type
+        double            m_arithmeticIntensity;
+        DataType          m_alphaType  = DataType::None; // if not assigned, will follow d-type
+        DataType          m_betaType   = DataType::None; // for bwd-compatible
+        DataType          m_scaleAType = DataType::None; // if not assigned, will follow alpha-type
+        DataType          m_scaleBType = DataType::None; // if not assigned, will follow alpha-type
+        DataType          m_scaleCType = DataType::None; // if not assigned, will follow beta-type
+        DataType          m_scaleDType = DataType::None; // if not assigned, will follow beta-type
+        DataType m_scaleAlphaVecType   = DataType::None; // if not assigned, will follow alpha-type
         DataType m_activationComputeType = DataType::None;
 
         ContractionProblemGemm::TENSOR m_biasSrc = ContractionProblemGemm::TENSOR::D;
