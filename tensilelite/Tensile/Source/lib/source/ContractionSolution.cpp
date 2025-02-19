@@ -844,25 +844,7 @@ namespace TensileLite
                     // dpTilesPerWG = bigEnough ? (tiles - skTiles) / skGrid : 0;
                     skTiles = bigEnough ? skGrid * fullTiles + tiles % skGrid : tiles;
                     // Cap Stream-K tiles at total number of tiles in case of large multiplier
-
-                    if(!inputs.ws)
-                    {
-                        std::cerr << "\nstreamk warning: workspace not initialized, falling back "
-                                     "to data parallel mode"
-                                  << std::endl;
-                        skTiles = tiles;
-                    }
-                    else if(inputs.workspaceSize < requiredWorkspaceSize(problem, hardware))
-                    {
-                        std::cerr << "\nstreamk warning: insufficient workspace (given: "
-                                  << inputs.workspaceSize
-                                  << " required: " << requiredWorkspaceSize(problem, hardware)
-                                  << "), falling back to data parallel mode" << std::endl;
-                        skTiles = tiles;
-                        //TODO Use heuristic to decide fallback to reduced grid instead of DP
-                    }
-                    else
-                        skTiles = min(skTiles, tiles);
+                    skTiles = min(skTiles, tiles);
                 }
 
                 uint32_t skItersPerWG = skTiles * itersPerTile / skGrid;
@@ -1193,7 +1175,24 @@ namespace TensileLite
             assert(pAMDGPU != nullptr && pAMDGPU->computeUnitCount != 0);
             if(sizeMapping.streamK != 0)
             {
-                skGrid             = getSKGrid(problem, hardware, tiles);
+                if(!inputs.ws)
+                {
+                    std::cerr << "\nstreamk warning: workspace not initialized, falling back to "
+                                 "data parallel mode"
+                              << std::endl;
+                    skGrid = tiles;
+                }
+                else if(inputs.workspaceSize < requiredWorkspaceSize(problem, hardware))
+                {
+                    std::cerr << "\nstreamk warning: insufficient workspace (given: "
+                              << inputs.workspaceSize
+                              << " required: " << requiredWorkspaceSize(problem, hardware)
+                              << "), falling back to data parallel mode" << std::endl;
+                    skGrid = tiles;
+                    //TODO Use heuristic to decide fallback to reduced grid instead of DP
+                }
+                else
+                    skGrid = getSKGrid(problem, hardware, tiles);
                 rv.numWorkGroups.x = skGrid;
                 rv.numWorkGroups.y = 1;
                 rv.numWorkGroups.z = 1;
